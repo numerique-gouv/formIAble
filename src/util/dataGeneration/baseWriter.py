@@ -4,6 +4,7 @@ Module for automatically filling in pdf forms
 
 import json
 import os
+import random
 import uuid
 from collections import OrderedDict
 from enum import Enum
@@ -69,18 +70,13 @@ class Writer:
         for subclass in cls.__subclasses__():
             yield subclass
 
-    def __init__(self, num_cerfa:str):
+    def __init__(self, num_cerfa:str, shift_coeff:float=None):
         """
         In the __init__ of the child class, you need to specify a dictionnary D mapping field types
         with functions to fill them.
         :param num_cerfa: cerfa number as string.
-        :param valid_pages List[int]: Liste des pages à prendre en compte pour la génération synthétique de données
-        (i.e les
-        pages qui contiennent des champs de formulaire). Si valid_pages et invalid_pages non spécifiés, toutes les pages
-        sont supposées valides.
-        :param invalid_pages List[int]: Liste des pages à NE PAS prendre en compte pour la génération synthétique de
-        données (i.e pages de notice). Si valid_pages et invalid_pages non spécifiés, toutes les pages
-        sont supposées valides.
+        :param shift_coeff float: Coefficient déterminant le pourcentage de décalage admissible pour les text_box (voir
+        self.__shit_textbox__)
         """
         self.fake = Faker(locales)
         self.fake.add_provider(VehicleProvider)
@@ -203,11 +199,7 @@ class Writer:
                     except KeyError:  # Writer's own functions may contain arguments
                         val = self.D[key](field=field)
                     field.field_value = val
-                    try:
-                        field.update()
-                    except ValueError as ex:
-                        print(ex)
-                        print(field.rect)
+                    field.update()
                     self.annotator.add(field.field_name, field.rect, val)
                     break
 
@@ -290,6 +282,18 @@ class Writer:
         max_chars = _field.text_maxlen if _field.text_maxlen > 0 else 1000
         return self.fake['fr-FR'].paragraph(nb_sentences=3, variable_nb_sentences=True)[:max_chars]
 
+    def fill_departement(self, **kwargs):
+        _field, formats = kwargs["field"], kwargs["param_value"]
+        if isinstance(formats,list):
+            format = random.choice(formats)
+            if format=='int':
+                return self.fake['fr-FR'].department_number()
+            elif format == "str":
+                return self.fake['fr-FR'].department_name()
+
+        raise ValueError("Vous devez spécifier une liste de formats admissible pour le champ décrivant le département"
+                         "dans le fichier json (Formats possibles: int, str)")
+
     def fill_siren_siret(self):
         """
         Fill a text area with a siren or a siret (50/50 chance)
@@ -318,6 +322,13 @@ class Writer:
         """
         _field, pattern = kwargs["field"], kwargs["param_value"]
         return self.fake.bothify(text=pattern)
+
+    def fill_phone_number(self):
+        """
+        Returns faker's phone_number function after removing trailing '+' character, and all whitespaces
+        :return: Un numéro de téléphone à 10 chiffres sans espaces
+        """
+        return self.fake['fr-FR'].phone_number().replace("+","").replace(" ","")
 
     def fill_digit_interval(self, **kwargs):
         """

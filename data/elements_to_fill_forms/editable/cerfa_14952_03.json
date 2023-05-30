@@ -1,0 +1,22 @@
+{
+  "name_fields": ["Nom de naissance 8","Nom de naissance 13","Nom de naissance 12","Nom de naissance 14"],
+  "surname_fields": ["Prenom(s) 12","Prénom 4","Prenom(s) 13","Prenom(s) 14"],
+  "whole_name": ["Nom et prénom de l'autorité ayant établi la procuration 9",
+                 "Nom et prénom de l'autorité ayant établi la procuration 7"],
+  "date_fields": {"Jour 14": "%d%m%Y","Jour 30": "%d%m%Y","Jour 31":  "%d%m%Y","Jour 34":  "%d%m%Y",
+                  "Jour 33":  "%d%m%Y","Jour 21":  "%d%m%Y","Jour 16":  "%d%m%Y","Jour 23":  "%d%m%Y"},
+  "numero_electeur" :  ["numero d'électeur 5","numero d'électeur 7"],
+
+
+  "phone": ["Téléphone 4"],
+  "email": ["Courriel 4"],
+  "city_fields": [
+      "Commune 4",
+      "Consulaire de 6",
+      "Fait_à 9",
+      "Fait_à 7"
+    ],
+  "departement": {"Departement 3": ["int","str"]},
+  "pays": ["Pays 3"],
+  "type_election": ["Pour l'élection 4","Type d'élection 1  5"]
+}
