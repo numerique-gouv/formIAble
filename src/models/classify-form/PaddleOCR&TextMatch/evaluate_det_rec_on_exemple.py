@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw
 logging.basicConfig(level=logging.INFO)
 
 example_image_path: str = "data/synthetic_forms/cerfa_12485_03_fake1.jpg"
-output_path: str = "results/PaddleOCR/"
+output_path: str = "results/PaddleOCR/cerfa_12485_03_fake1/"
 
 # path to save paddleocr image and text output
 image_file_name: str = os.path.basename(os.path.splitext(example_image_path)[0])
@@ -22,6 +22,7 @@ ocr_result: list[list[list[list[float]] | tuple[str, float]]] = ocrModel.ocr(
 
 logging.info(f"ocr_result = \n{ocr_result}")
 
+os.mkdir(os.path.dirname(ocrised_image_path))
 os.system(f"cp {example_image_path} {ocrised_image_path}")
 with Image.open(ocrised_image_path) as image:
     draw = ImageDraw.Draw(image)
