@@ -56,9 +56,9 @@ class DoctrTransformer:
 
 
 def identify_cerfa(page_content):
-    pattern = r"No(\d{5}\*\d{2})"
+    pattern = r"N[°o](\d{5}\*\d{2})"
 
-    match = re.search(pattern, page_content)
+    match = re.search(pattern, page_content, re.IGNORECASE)
 
     if match:
         result = match.group(1)
@@ -67,9 +67,7 @@ def identify_cerfa(page_content):
         raise ValueError("No cerfa number found.")
 
 
-def main():
-    path = "../data/synthetic_forms/cerfa_12485_03_fake1.jpg"
-
+def main(transformer, path):
     # Load document if pdf
     if Path(path).suffix == ".pdf":
         doc = fitz.open(path)
@@ -80,7 +78,7 @@ def main():
         if page_content:
             return identify_cerfa(page_content)
 
-    doctr_documents = DoctrTransformer().transform([Path(path)])
+    doctr_documents = transformer.transform([Path(path)])
     page = doctr_documents[0].pages[
         0
     ]
@@ -94,5 +92,18 @@ def main():
 
 
 if __name__ == "__main__":
-    cerfa_number = main()
-    print(cerfa_number)
+    transformer = DoctrTransformer()
+    path_list = [
+        "../data/synthetic_forms/cerfa_12485_03_fake1.jpg",
+        "../data/empty_forms/non-editable/cerfa_12485_03.png",
+        "../data/empty_forms/non-editable/cerfa_14011_03.png",
+        "../data/empty_forms/editable/cerfa_13753_04.pdf",
+        "../data/empty_forms/editable/cerfa_13969_01.pdf"
+    ]
+
+    for path in path_list:
+        try:
+            cerfa_number = main(transformer, path)
+            print(cerfa_number)
+        except Exception:
+            pass
