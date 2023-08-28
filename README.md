@@ -77,3 +77,18 @@ Le script suivant permet de lancer la génération de formulaires synthétiques:
 ```
 python src/util/generate_cerfa.py
 ```
+
+## Classification des formulaires
+
+Pour ajouter une référence:
+```
+python "src/models/classify-form/PaddleOCR&TextMatch/classify.py" add_reference "data/synthetic_forms/cerfa_14011_03_fake1.jpg" "src/models/classify-form/PaddleOCR&TextMatch/references_accepted.txt"
+```
+Pour extraire une référence
+```
+python "src/models/classify-form/PaddleOCR&TextMatch/classify.py" get_reference "data/synthetic_forms/cerfa_14011_03_fake1.jpg"
+```
+Pour classer un formulaire (extraction de la référence puis recherche dans le fichier `references_accepted.txt`):
+```
+python "src/models/classify-form/PaddleOCR&TextMatch/classify.py" classify_image "data/synthetic_forms/cerfa_14011_03_fake1.jpg" "src/models/classify-form/PaddleOCR&TextMatch/references_accepted.txt"
+```
