@@ -225,7 +225,7 @@ def creation_faux_cerfa_non_editables(nom_cerfa,
     logging.info(f"Loaded {len(font_list)} fonts")
     color_list = {"noir": (1, 1, 1)}
 
-    index_fake_cerfa = 0
+    index_fake_cerfa = 1
 
     def path_fake_cerfa(nom_cerfa, save_dir, index_fake_cerfa):
         return os.path.join(save_dir, f"{nom_cerfa}_fake{index_fake_cerfa}.jpg")
@@ -259,7 +259,7 @@ if __name__ == "__main__":
     creation_faux_cerfa_non_editables(nom_cerfa="cerfa_14011_03",
                                       path_structure_cerfa="data/elements_to_fill_forms/non-editable/cerfa_14011_03_id.json",
                                       path_cerfa="data/empty_forms/non-editable/cerfa_14011_03.png",
-                                      n_cerfa_to_generate=10,
+                                      n_cerfa_to_generate=5,
                                       save_dir="data/synthetic_forms",
                                       path_folder_signatures="data/elements_to_fill_forms/signatures",
                                       path_usable_fonts_list="data/elements_to_fill_forms/usable_fonts.json")
