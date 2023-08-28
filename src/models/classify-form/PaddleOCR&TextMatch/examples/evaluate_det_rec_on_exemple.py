@@ -6,8 +6,8 @@ import os
 from PIL import Image, ImageDraw
 logging.basicConfig(level=logging.INFO)
 
-example_image_path: str = "data/synthetic_forms/cerfa_12485_03_fake1.jpg"
-output_path: str = "results/PaddleOCR/cerfa_12485_03_fake1/"
+example_image_path: str = "data/synthetic_forms/cerfa_14011_03_fake2.jpg"
+output_path: str = "results/PaddleOCR/cerfa_14011_03/"
 
 # path to save paddleocr image and text output
 image_file_name: str = os.path.basename(os.path.splitext(example_image_path)[0])
@@ -26,7 +26,7 @@ os.mkdir(os.path.dirname(ocrised_image_path))
 os.system(f"cp {example_image_path} {ocrised_image_path}")
 with Image.open(ocrised_image_path) as image:
     draw = ImageDraw.Draw(image)
-    text_file = open(ocrised_text_path, "w")
+    text_file = open(ocrised_text_path, "w", encoding='UTF-8')
     # draw detected text areas in red
     for box_coordinates, text_and_score in ocr_result[0]:
         points: list[tuple] = [tuple(point) for point in box_coordinates]
