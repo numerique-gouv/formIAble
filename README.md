@@ -66,3 +66,14 @@ mim install mmocr
 ### Pré-annotation avec Doctr
 
 `python3 -m src.data.labeling.label_images projet-formiable/data/ls_data/ projet-formiable/data/ls_prelabels/`
+
+## Génération de formulaires synthétiques
+
+Pour générer des formulaires synthétiques, 
+il faut partir d'un formulaire vide comme [celui-ci](data/empty_forms/non-editable/cerfa_14011_03.png) et spécifier la liste des champs à remplir, 
+en précisant les coordonnées et le type de chaque champ comme dans [ce fichier json](data/elements_to_fill_forms/non-editable/cerfa_14011_03_id.json).
+<br>
+Le script suivant permet de lancer la génération de formulaires synthétiques:
+```
+python src/util/generate_cerfa.py
+```
