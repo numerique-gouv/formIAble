@@ -208,7 +208,9 @@ def creation_faux_cerfa_non_editables(nom_cerfa,
                                       n_cerfa_to_generate,
                                       save_dir,
                                       path_folder_signatures,
-                                      path_usable_fonts_list):
+                                      path_usable_fonts_list,
+                                      min_rotation_angle=-90,
+                                      max_rotation_angle=90):
 
     with open(path_structure_cerfa, "r") as f:
         structure_cerfa = json.load(f)
@@ -238,7 +240,10 @@ def creation_faux_cerfa_non_editables(nom_cerfa,
                                                  path_folder_signatures=path_folder_signatures)
         add_rotation, make_grayscale, add_noise = [x > 0.5 for x in np.random.random(3)]
         if add_rotation:
-            image = image.rotate((np.random.random() - 0.5) * 6, expand=True)
+            image = image.rotate(
+                np.random.randint(min_rotation_angle, max_rotation_angle + 1),
+                expand=True
+            )
         if make_grayscale:
             image = ImageOps.grayscale(image)
         if make_grayscale and add_noise:
