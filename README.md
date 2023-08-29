@@ -80,7 +80,7 @@ python src/util/generate_cerfa.py
 
 ## Classification des formulaires
 
-Pour ajouter une référence:
+Pour ajouter une référence
 ```
 python "src/models/classify-form/PaddleOCR&TextMatch/classify.py" add_reference "data/synthetic_forms/cerfa_14011_03_fake1.jpg" "src/models/classify-form/PaddleOCR&TextMatch/references_accepted.txt"
 ```
@@ -92,3 +92,11 @@ Pour classer un formulaire (extraction de la référence puis recherche dans le 
 ```
 python "src/models/classify-form/PaddleOCR&TextMatch/classify.py" classify_image "data/synthetic_forms/cerfa_14011_03_fake1.jpg" "src/models/classify-form/PaddleOCR&TextMatch/references_accepted.txt"
 ```
+
+## Transformation affine automatique
+
+Pour lancer un exemple.
+```
+python "src/models/auto-rotation-translation/PaddleOCR.py"
+```
+Appliquer le paramètre `cls = False` permet de supprimer la détection automatique du sens du texte et d'améliorer les performances, mais cela rend impossible la détection de documents dont le sens est inversé.
