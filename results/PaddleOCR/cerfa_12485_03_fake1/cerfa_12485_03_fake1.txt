@@ -1,0 +1,63 @@
+cerfa
+DECLARATION DE CHOIX DU MEDECIN TRAITANT
+N°12485*03
+ (article L. 162-5-3 du Code de la sécurité sociale)
+ inscrire les nom, prénom et adresse en majuscules
+IMPORTANT
+ inscrire les chiffres lisiblement (un chiffre par case)
+Identification de I'assuré(e) et du bénéficiaire des soins
+L'assuré(e)
+Nom de famille (de naissance)
+Caron
+suivi du nom d'usage, s'il y a lie
+Prénom
+William
+N° de sécurité sociale
+876065820766732
+ Le bénéficiaire des soins
+Nom de famille (de naissance)
+Pereira
+suivi du nom d'usage, s'il y a lieu
+ Prénom
+Madeleine
+Date de naissance
+11112005
+Adresse de l'assuré(e)
+4, rue de Leconte 59522
+Roy-sur-Mer
+Identification de la structure d'exercice et du médecin traitant
+Raison sociale et adresse du cabinet, de I'établissement (*)
+Nom et prénom du médecin traitant
+Centre médical Texier
+8, chemin de Lucas 56647 Schmitt
+Nom
+Lopez
+Sabine
+ Prénom
+N° de la structure (AM,FINESS, ou SIRET)
+32502482515776
+Identifiant
+21634255414
+(*) centre de santé, établissement ou service médico-social
+Déclaration conjointe du bénéficiaire des soins et du médecin traitant
+Le bénéficiaire (ou son représentant) et le médecin traitant s'engagent conjointement a respecter les dispositions de I'article L. 162-5-3 du Code de la sécurité sociale
+Bénéficiaire des soins
+(et/ou parent ou titulaire de I'autorité parentale pour les mineurs - voir notice)
+Médecin traitant
+Je soussigné(e), M., Mme,
+Je soussigné(e), Docteur
+Elise Bonnet
+Julie Benard
+ déclare choisir le médecin identifié ci-dessus comme médecin traitant
+ déclare etre le médecin traitant du bénéficiaire cité ci-dessus
+Signature(s)
+Signature
+Déclaration signée le
+29102000
+ Merci d'envoyer la déclaration complétée et signée a votre caisse d'assurance maladie.
+La loi 78.17 du 6.1.78 modifiée relative a I'informatique, aux fichiers et aux libertés s'applique aux réponses faites sur ce formulaire. Elle garantit un droit
+S 3704b
+d'accés et de rectification pour les données vous concernant.
+Quiconque
+ se rend coupable de fraude ou de fausse déclaration est passible de pénalités financiéres, d'amende et/ou d'emprisonnement (articles 313-1 a 313-3,
+433-19, 441-1 et suivants du Code pénal, article L. 114-17-1 du Code de la sécurité sociale).

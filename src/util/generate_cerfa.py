@@ -1,15 +1,18 @@
 import datetime
 import json
 import os
+import logging
 import random
 import rstr
-
+import sys
+sys.path.append(os.getcwd())
 import numpy as np
 from faker import Faker
 from PIL import Image, ImageOps
 from PIL import ImageFont
 from PIL import ImageDraw
 from src.util.utils import ajout_retour_ligne
+logging.basicConfig(level=logging.INFO)
 
 
 class Champ:
@@ -45,8 +48,7 @@ class Formulaire:
         for champ, proprietes in structure["champs_image"].items():
             self.champs_image.append(Champ("libre", proprietes))
         self.cases_a_cocher = []
-        for champ, proprietes in structure["cases_a_cocher"].items():
-            self.cases_a_cocher.append(Champ("cases_a_cocher", proprietes))
+
 
     def creation_fausse_info(self, type_champ, champ, draw, font):
 
@@ -87,13 +89,15 @@ class Formulaire:
                 _ext = random.choices(["", "bis", "ter"], weights=[0.9, 0.07, 0.03])[0]
                 info.append(_ext)
             elif type_donnes == "type_voie":
-                info.append(self.fake.street_name().split(' ')[0])
+                info.append(self.fake.street_name().split(" ")[0])
             elif type_donnes == "nom_voie":
-                info.append(" ".join(self.fake.street_name().split(' ')[1:]))
+                info.append(" ".join(self.fake.street_name().split(" ")[1:]))
             elif type_donnes == "date":
                 delta = datetime.datetime.now() - datetime.datetime(1900, 1, 1)
                 int_delta = (delta.days * 24 * 60 * 60) + delta.seconds
-                random_second = np.random.randint(0, int_delta)
+                # cap int_delta to respect np.random.randint boundaries
+                int_delta = min(int_delta, np.iinfo(np.int32).max)
+                random_second = np.random.randint(low=0, high=int_delta)
                 rand_date = datetime.datetime(1900, 1, 1) + datetime.timedelta(seconds=random_second)
                 info.append(rand_date.strftime("%d%m%Y"))
             elif type_donnes == "telephone":
@@ -111,7 +115,7 @@ class Formulaire:
             elif type_donnes == "element_liste":
                 info.append(random.choice(champ.liste))
             elif type_donnes == "regex":
-                _num = rstr.xeger(f'{champ.regex}')
+                _num = rstr.xeger(f"{champ.regex}")
                 info.append(_num)
             else:
                 info.append("")
@@ -149,7 +153,7 @@ class Formulaire:
                     font = ImageFont.truetype(font.path.split("/")[-1].replace(".ttf", ""), font.size - 1)
                 return zip([champ.pos], [info], [font])
 
-    def generation_faux_exemplaire(self, _cerfa_path, font, color_list):
+    def generation_faux_exemplaire(self, _cerfa_path, font, color_list, path_folder_signatures):
 
         image = Image.open(_cerfa_path)
         draw = ImageDraw.Draw(image)
@@ -178,10 +182,11 @@ class Formulaire:
                     text = ajout_retour_ligne(text, box[2] - x_eps, font, draw)
                 draw.text((box[0] + x_eps, box[1] + sign * y_eps), text, color_list[color], font=box_font)
         for champ in self.champs_image:
-            chosen_signature = np.random.choice(os.listdir('data/signatures'))
-            signature = Image.open(os.path.join('data/signatures', chosen_signature))
+            chosen_signature = np.random.choice(os.listdir(path_folder_signatures))
+            signature = Image.open(os.path.join(path_folder_signatures, chosen_signature))
             signature = signature.resize((champ.pos[2], champ.pos[3]))
-            image.paste(signature, (champ.pos[0], champ.pos[1]))
+            # use mask to avoid pasting black background
+            image.paste(signature, (champ.pos[0], champ.pos[1]), mask=signature)
         for champ in self.cases_a_cocher:
             largeur_moyenne_case = np.mean([x[2] for x in champ.pos])
             hauteur_moyenne_case = np.mean([x[3] for x in champ.pos])
@@ -197,37 +202,69 @@ class Formulaire:
         return image
 
 
-def creation_faux_cerfa_non_editables(nom_cerfa, _cerfa_structure, _cerfa_path, n_cerfa):
+def creation_faux_cerfa_non_editables(nom_cerfa,
+                                      path_structure_cerfa,
+                                      path_cerfa,
+                                      n_cerfa_to_generate,
+                                      save_dir,
+                                      path_folder_signatures,
+                                      path_usable_fonts_list,
+                                      min_rotation_angle=-90,
+                                      max_rotation_angle=90):
 
-    cerfa = Formulaire(nom_cerfa, _cerfa_structure)
-    with open("data/synthetic_forms/usable_fonts.json", "r") as file:
+    with open(path_structure_cerfa, "r") as f:
+        structure_cerfa = json.load(f)
+
+    cerfa = Formulaire(nom_cerfa, structure_cerfa)
+    with open(path_usable_fonts_list, "r") as file:
         all_fonts = json.load(file)["fonts"]
     font_list = []
     for font in all_fonts:
-        font_list.append(ImageFont.truetype(font, 40))
+        try:
+            font_list.append(ImageFont.truetype(font, 40))
+        except OSError as e:
+            logging.warning(f"Font {font} not found")
+    logging.info(f"Loaded {len(font_list)} fonts")
     color_list = {"noir": (1, 1, 1)}
-    for n in range(n_cerfa):
+
+    index_fake_cerfa = 1
+
+    def path_fake_cerfa(nom_cerfa, save_dir, index_fake_cerfa):
+        return os.path.join(save_dir, f"{nom_cerfa}_fake{index_fake_cerfa}.jpg")
+
+    for n in range(n_cerfa_to_generate):
         font = np.random.choice(font_list)
-        image = cerfa.generation_faux_exemplaire(_cerfa_path, font, color_list)
+        image = cerfa.generation_faux_exemplaire(path_cerfa,
+                                                 font,
+                                                 color_list,
+                                                 path_folder_signatures=path_folder_signatures)
         add_rotation, make_grayscale, add_noise = [x > 0.5 for x in np.random.random(3)]
         if add_rotation:
-            image = image.rotate((np.random.random() - 0.5) * 6, expand=True)
+            image = image.rotate(
+                np.random.randint(min_rotation_angle, max_rotation_angle + 1),
+                expand=True
+            )
         if make_grayscale:
             image = ImageOps.grayscale(image)
         if make_grayscale and add_noise:
             gaussian = np.random.normal(0, 10, (image.size[1], image.size[0]))
             image = Image.fromarray(image + gaussian)
-        font_name = font.path.split("/")[-1].replace(".ttf", "")
-        save_dir = f"data/synthetic_forms"
+
+        font_name = os.path.splitext(os.path.split(font.path)[-1])[0]
         if not os.path.isdir(save_dir):
             os.mkdir(save_dir)
-        image.convert('RGB').save(os.path.join(save_dir, f"{n}_{font_name}.jpg"))
+
+        while os.path.exists(path_fake_cerfa(nom_cerfa, save_dir, index_fake_cerfa)):
+            index_fake_cerfa += 1
+        image.convert("RGB").save(path_fake_cerfa(nom_cerfa, save_dir, index_fake_cerfa))
 
 
 if __name__ == "__main__":
 
-    cerfa_path: str = "data/empty_forms/non-editable/cerfa_13749_05.png"
-    with open("data/elements_to_fill_forms/non-editable/cerfa_13749_05.json", "r") as f:
-        cerfa_structure = json.load(f)
-    creation_faux_cerfa_non_editables(nom_cerfa="cerfa_113749_05", _cerfa_structure=cerfa_structure,
-                                      _cerfa_path=cerfa_path, n_cerfa=10)
+    creation_faux_cerfa_non_editables(nom_cerfa="cerfa_14011_03",
+                                      path_structure_cerfa="data/elements_to_fill_forms/non-editable/cerfa_14011_03_id.json",
+                                      path_cerfa="data/empty_forms/non-editable/cerfa_14011_03.png",
+                                      n_cerfa_to_generate=5,
+                                      save_dir="data/synthetic_forms",
+                                      path_folder_signatures="data/elements_to_fill_forms/signatures",
+                                      path_usable_fonts_list="data/elements_to_fill_forms/usable_fonts.json")

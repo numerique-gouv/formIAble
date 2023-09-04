@@ -66,3 +66,37 @@ mim install mmocr
 ### Pré-annotation avec Doctr
 
 `python3 -m src.data.labeling.label_images projet-formiable/data/ls_data/ projet-formiable/data/ls_prelabels/`
+
+## Génération de formulaires synthétiques
+
+Pour générer des formulaires synthétiques, 
+il faut partir d'un formulaire vide comme [celui-ci](data/empty_forms/non-editable/cerfa_14011_03.png) et spécifier la liste des champs à remplir, 
+en précisant les coordonnées et le type de chaque champ comme dans [ce fichier json](data/elements_to_fill_forms/non-editable/cerfa_14011_03_id.json).
+<br>
+Le script suivant permet de lancer la génération de formulaires synthétiques:
+```
+python src/util/generate_cerfa.py
+```
+
+## Classification des formulaires
+
+Pour ajouter une référence
+```
+python "src/models/classify-form/PaddleOCR&TextMatch/classify.py" add_reference "data/synthetic_forms/cerfa_14011_03_fake1.jpg" "src/models/classify-form/PaddleOCR&TextMatch/references_accepted.txt"
+```
+Pour extraire une référence
+```
+python "src/models/classify-form/PaddleOCR&TextMatch/classify.py" get_reference "data/synthetic_forms/cerfa_14011_03_fake1.jpg"
+```
+Pour classer un formulaire (extraction de la référence puis recherche dans le fichier `references_accepted.txt`):
+```
+python "src/models/classify-form/PaddleOCR&TextMatch/classify.py" classify_image "data/synthetic_forms/cerfa_14011_03_fake1.jpg" "src/models/classify-form/PaddleOCR&TextMatch/references_accepted.txt"
+```
+
+## Transformation affine automatique
+
+Pour lancer un exemple.
+```
+python "src/models/auto-rotation-translation/PaddleOCR.py"
+```
+Appliquer le paramètre `cls = False` permet de supprimer la détection automatique du sens du texte et d'améliorer les performances, mais cela rend impossible la détection de documents dont le sens est inversé.
