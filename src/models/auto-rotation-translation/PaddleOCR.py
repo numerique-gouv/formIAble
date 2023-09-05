@@ -3,10 +3,9 @@ import os.path
 import paddleocr
 import cv2
 import numpy as np
-from typing import List, Tuple
+from typing import List
 import unicodedata
 import Levenshtein
-from PIL import Image, ImageDraw
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
