@@ -6,7 +6,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 
-def plot_boxes_in_document(path_fields_file: str):
+def detect_boxes_in_document(path_fields_file: str):
     with open(path_fields_file, "r") as fields_file:
         fields_dict: Dict = json.load(fields_file)
     fields_positions: List[List[int]] = []
@@ -19,6 +19,4 @@ def plot_boxes_in_document(path_fields_file: str):
     logging.debug(fields_names)
 
 
-plot_boxes_in_document(path_fields_file="data/elements_to_fill_forms/non-editable/cerfa_14011_03_id.json")
-
-
+detect_boxes_in_document(path_fields_file="data/elements_to_fill_forms/non-editable/cerfa_14011_03_id.json")

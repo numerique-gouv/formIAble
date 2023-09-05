@@ -11,5 +11,7 @@ torchvision
 python-doctr
 pymupdf-fonts
 lanms-neo
+rapidfuzz==2.15.1
+pymupdf
 python-Levenshtein
 opencv-python
