@@ -6,7 +6,7 @@ database.
 import sys
 from typing import Dict, Tuple
 import re
-from doctr.io import DocumentFile
+from doctr.io import DocumentFile, Document
 from doctr.models import ocr_predictor
 from models.classify_form.doctr.identify_cerfa_doctr import get_list_words_in_page
 from util.dataGeneration.writer_13753_04 import Writer13753_04
@@ -18,17 +18,22 @@ from PIL import Image
 AREA_RATIO_THRESHOLD = 0.5
 available_cerfas_editable = ["13753*04", "13969*01"]
 available_cerfas_non_editable = ["12485_03", "14011_03"]
-cerfa_number_to_writer_id = {
-    "13753*04": "13753_04",
-    "13969*01": "13969_01"
-}
-writers = {
-    "13753_04": Writer13753_04,
-    "13969_01": Writer13969_01
-}
+cerfa_number_to_writer_id = {"13753*04": "13753_04", "13969*01": "13969_01"}
+writers = {"13753_04": Writer13753_04, "13969_01": Writer13969_01}
 
 
-def get_cerfa_template(cerfa_number: str):
+def get_cerfa_template(cerfa_number: str) -> Dict:
+    """From a Cerfa number get a template if it exists.
+    # TODO: implement for uneditable Cerfas.
+
+    Args:
+        cerfa_number (str): Cerfa number.
+
+    Returns:
+        Dict: Cerfa template with the bounding boxes of the areas
+        of interest as keys and field names as values (to harmonize with
+        uneditable Cerfas.)
+    """
     if cerfa_number in available_cerfas_editable:
         writer_id = cerfa_number_to_writer_id[cerfa_number]
         writer = writers[writer_id](num_cerfa=writer_id)
@@ -40,7 +45,16 @@ def get_cerfa_template(cerfa_number: str):
         raise ValueError(f"Cerfa {cerfa_number} does not have a template yet")
 
 
-def load_cerfa(cerfa_path: str):
+def load_cerfa(cerfa_path: str) -> Image:
+    """Load a cerfa pdf as an image.
+    # TODO: adapt for image extensions.
+
+    Args:
+        cerfa_path (str): Path.
+
+    Returns:
+        Image: Image.
+    """
     doc = fitz.open(cerfa_path)
     page = doc.load_page(0)
     pix = page.get_pixmap()
@@ -50,7 +64,17 @@ def load_cerfa(cerfa_path: str):
     return image
 
 
-def ocrize(cerfa_path: str, ocr_engine="Doctr"):
+def ocrize(cerfa_path: str, ocr_engine="Doctr") -> Document:
+    """Ocrize a Cerfa with a given OCR engine.
+    # TODO: generalize to other engines.
+
+    Args:
+        cerfa_path (str): Cerfa path.
+        ocr_engine (str, optional): OCR engine. Defaults to "Doctr".
+
+    Returns:
+        Document: OCR extraction.
+    """
     doc_doctr = DocumentFile.from_pdf(cerfa_path)
 
     if ocr_engine == "Doctr":
@@ -66,7 +90,15 @@ def ocrize(cerfa_path: str, ocr_engine="Doctr"):
     return output
 
 
-def identify_cerfa(ocr_output):
+def identify_cerfa(ocr_output: Document) -> str:
+    """Identify Cerfa from OCR output.
+
+    Args:
+        ocr_output (Document): OCR output
+
+    Returns:
+        str: Cerfa number.
+    """
     page = ocr_output.pages[0]
     page_content = ""
     for block in page.blocks:
@@ -84,7 +116,18 @@ def identify_cerfa(ocr_output):
         raise ValueError("No cerfa number found.")
 
 
-def process_doctr_output(doctr_output, width: int, height: int):
+def process_doctr_output(doctr_output: Document, width: int, height: int) -> Dict:
+    """Process Doctr output to return a dictionary
+    with bounding boxes under the correct format.
+
+    Args:
+        doctr_output (Document): Doctr output.
+        width (int): Image width.
+        height (int): Image height.
+
+    Returns:
+        Dict: Formatted OCR output.
+    """
     processed_output = {}
 
     page = doctr_output.pages[0]  # docs à une page
@@ -93,14 +136,23 @@ def process_doctr_output(doctr_output, width: int, height: int):
     for word in list_words_in_page:
         label = word.value
         x0, y0 = word.geometry[0][0] * width, word.geometry[0][1] * height
-        x1, y1 = word.geometry[1][0] * width,  word.geometry[1][1] * height
+        x1, y1 = word.geometry[1][0] * width, word.geometry[1][1] * height
 
         processed_output[(x0, y0, x1, y1)] = label
 
     return processed_output
 
 
-def compute_box_area(box: Tuple):
+def compute_box_area(box: Tuple) -> int:
+    """Compute area of a bounding box identified by its
+    x0, y0, x1, y1 coordinates.
+
+    Args:
+        box (Tuple): Box coordinates.
+
+    Returns:
+        int: Box area.
+    """
     x0, y0, x1, y1 = box
     box_width = x1 - x0
     box_height = y1 - y0
@@ -108,7 +160,16 @@ def compute_box_area(box: Tuple):
     return box_area
 
 
-def compute_boxes_intersection(box1: Tuple, box2: Tuple):
+def compute_boxes_intersection(box1: Tuple, box2: Tuple) -> Tuple:
+    """Compute intersection of two bounding boxes.
+
+    Args:
+        box1 (Tuple): First bounding box.
+        box2 (Tuple): Second bounding box.
+
+    Returns:
+        Tuple: Intersection.
+    """
     x0_1, y0_1, x1_1, y1_1 = box1
     x0_2, y0_2, x1_2, y1_2 = box2
 
@@ -125,7 +186,16 @@ def compute_boxes_intersection(box1: Tuple, box2: Tuple):
         return None  # No intersection
 
 
-def clean_cerfa_template(cerfa_template: Dict):
+def clean_cerfa_template(cerfa_template: Dict) -> Dict:
+    """Clean a raw writer's annotator dict to give a
+    formatted Cerfa template.
+
+    Args:
+        cerfa_template (Dict): Raw template.
+
+    Returns:
+        Dict: Formatted template.
+    """
     clean_template = {}
     # For now cerfa template is the raw writer's annotator dict
     for box, field in cerfa_template.items():
@@ -142,10 +212,19 @@ def clean_cerfa_template(cerfa_template: Dict):
 
 
 def match_bounding_boxes_to_template(
-    ocr_bounding_boxes: Dict,
-    clean_cerfa_template: Dict,
-    area_ratio_threshold: float
-):
+    ocr_bounding_boxes: Dict, clean_cerfa_template: Dict, area_ratio_threshold: float
+) -> Tuple[Dict, Dict]:
+    """Match OCR bounding boxes to a Cerfa template.
+
+    Args:
+        ocr_bounding_boxes (Dict): Clean OCR output.
+        clean_cerfa_template (Dict): Cerfa template.
+        area_ratio_threshold (float): Ratio over which intersection
+            of an OCR BB and of a template BB is considered.
+
+    Returns:
+        Tuple[Dict, Dict]: Filled Cerfa template and box matching.
+    """
     filled_template = {key: [] for key in clean_cerfa_template.keys()}
     matched_boxes = {key: [] for key in clean_cerfa_template.keys()}
     for ocr_box, word in ocr_bounding_boxes.items():
@@ -156,8 +235,9 @@ def match_bounding_boxes_to_template(
             intersection = compute_boxes_intersection(ocr_box, template_box)
             if intersection is not None:
                 intersection_area = compute_box_area(intersection)
-                if (intersection_area / box_area > area_ratio_threshold) and \
-                        (intersection_area > max_intersection_area):
+                if (intersection_area / box_area > area_ratio_threshold) and (
+                    intersection_area > max_intersection_area
+                ):
                     max_intersection_area = intersection_area
                     field_to_increment = field_name
         if field_to_increment:
@@ -193,9 +273,7 @@ def main(cerfa_path: str):
 
     # Matching
     filled_template, matched_boxes = match_bounding_boxes_to_template(
-        clean_ocr_output,
-        clean_template,
-        area_ratio_threshold=AREA_RATIO_THRESHOLD
+        clean_ocr_output, clean_template, area_ratio_threshold=AREA_RATIO_THRESHOLD
     )
     print(filled_template)
 
