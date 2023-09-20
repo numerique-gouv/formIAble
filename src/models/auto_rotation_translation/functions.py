@@ -10,7 +10,7 @@ def affine_transform_from_boxes(path_image_input: str,
                                 path_image_output: str,
                                 boxes_image_input: List[List[Tuple[int, int]]],
                                 boxes_image_reference: List[List[Tuple[int, int]]],
-                                size_image_output: Tuple[int, int]) -> None:
+                                size_image_output: Tuple[int, int]) -> np.ndarray:
     """
     Apply the affine transform that matches the centers of boxes_image_input and boxes_image_reference
 
@@ -34,6 +34,7 @@ def affine_transform_from_boxes(path_image_input: str,
                                   dsize=(size_image_output[1], size_image_output[0]))
     cv2.imwrite(filename=path_image_output, img=image_output)
     logging.debug(f"Apply affine transform on image {path_image_input} [OK], wrote result to {path_image_output}")
+    return matrix_affine_transform
 
 
 def strip_accents(text):
