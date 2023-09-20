@@ -39,7 +39,7 @@ def convert_to_png(path_document_input: str,
     if extension_input == ".pdf":
         doc = fitz.open(path_document_input)
         page = doc.load_page(0)
-        pix = page.get_pixmap()
+        pix = page.get_pixmap(dpi=350)
         image: PIL.Image.Image = PIL.Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
         image.save(fp=path_document_output, format="PNG")
     else:
