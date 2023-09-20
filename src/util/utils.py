@@ -1,5 +1,6 @@
 from pdf2image import convert_from_path
 import os
+from pathlib import Path
 
 
 def ajout_retour_ligne(text, max_length, font, draw):
@@ -27,3 +28,7 @@ def convert_pdf_to_png(pdf_path):
     for i, page in enumerate(pages):
         image_name = f"{file_name}_p{i+1}.png"
         page.save(os.path.join(directory_path, image_name), "PNG")
+
+
+def get_root_path() -> Path:
+    return Path(__file__).parent.parent.parent
