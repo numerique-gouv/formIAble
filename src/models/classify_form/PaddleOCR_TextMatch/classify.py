@@ -14,6 +14,8 @@ def get_reference(image_path: str,
 
     :param image_path: path to image
     :type image_path: str
+    :param ocrModel: model to use for text detection and recognition
+    :type ocrModel: paddleocr.PaddleOCR
     :return: reference text
     :rtype: str
     """
@@ -28,7 +30,7 @@ def get_reference(image_path: str,
     for text in text_contents:
         match = re.search(CERFA_REFERENCE_REGEX, text)
         if match:
-            text_matching_reference.append(match.group(0).replace(" ", ""))
+            text_matching_reference.append(match.group(0).replace(" ", "").replace("*", "_").strip())
     if len(text_matching_reference) == 0:
         raise ValueError(f"No CERFA reference found in {image_path}")
     if len(text_matching_reference) > 1:
