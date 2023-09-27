@@ -1,3 +1,4 @@
+from typing import List
 import sys
 import logging
 import re
@@ -26,8 +27,12 @@ def get_reference(image_path: str,
         cls=True
     )
     text_contents = [text_and_score[1][0] for text_and_score in ocr_result[0]]
+    return get_reference_from_texts(text_contents)
+
+
+def get_reference_from_texts(texts: List[str]):
     text_matching_reference = []
-    for text in text_contents:
+    for text in texts:
         match = re.search(CERFA_REFERENCE_REGEX, text)
         if match:
             text_matching_reference.append(match.group(0).replace(" ", "").replace("*", "_").strip())
