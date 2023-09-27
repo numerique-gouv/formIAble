@@ -20,7 +20,7 @@ def affine_transform_from_boxes(path_image_input: str,
     :param boxes_image_reference: list of 3 boxes found in the reference image used to compute affine transform
     :param size_image_output: (height: int, width: int) of the image after transform
 
-    :returns: None
+    :returns: The transformation matrix
     """
     logging.debug(f"Apply affine transform on image {path_image_input} ...")
     points_image_input: np.ndarray = np.array(boxes_image_input, dtype=np.float32).mean(axis=1)
