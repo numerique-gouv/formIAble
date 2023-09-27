@@ -15,10 +15,12 @@ def extract_document(path_input_document: str,
 
 def register_document(path_document_to_register: str,
                       path_dir_reference_documents: str,
-                      texts_reference: List[str]) -> None:
+                      texts_reference: List[str],
+                      ocr_model: paddleocr.PaddleOCR) -> None:
     """Register a document
     The fields to extract are supposed to be in a configuration file
-    named cerfa_*****_**.json in directory path_dir_reference_documents.
+    named cerfa_*****_**.json in directory path_dir_reference_documents, where
+    the document is supposed to be named cerfa_*****_** (see convert_to_png for accepted extensions).
     The document is exported to png and saved in path_dir_reference_documents
     Text elements of texts_reference are detected in the document and added
     in the configuration file cerfa_*****_**.json.
@@ -27,8 +29,6 @@ def register_document(path_document_to_register: str,
     assert f"{name_document_to_register}.json" in os.listdir(path_dir_reference_documents), \
         f"Config file {name_document_to_register}.json not found in {path_dir_reference_documents}"
 
-    ocr_model: paddleocr.PaddleOCR = paddleocr.PaddleOCR(use_angle_cls=False,
-                                                         lang='fr')
     path_config: str = os.path.join(path_dir_reference_documents, f"{name_document_to_register}.json")
     path_image_reference: str = os.path.join(path_dir_reference_documents, f"{name_document_to_register}.png")
     utils.convert_to_png(path_document_input=path_document_to_register,
