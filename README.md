@@ -78,7 +78,7 @@ Le script suivant permet de lancer la génération de formulaires synthétiques:
 python src/util/generate_cerfa.py
 ```
 
-## Classification des formulaires
+## Classification des formulaires - exemples
 
 Pour ajouter une référence
 ```
