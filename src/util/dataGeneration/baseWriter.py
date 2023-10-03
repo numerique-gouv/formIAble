@@ -14,10 +14,11 @@ import numpy.random
 from faker import Faker
 from faker_vehicle import VehicleProvider
 from fitz import fitz
+from util.utils import get_root_path
+
 
 locales = OrderedDict([
     ('fr-FR', 1)])
-
 
 
 class DateFormats(Enum):
@@ -80,9 +81,18 @@ class Writer:
         """
         self.fake = Faker(locales)
         self.fake.add_provider(VehicleProvider)
-        _input_filepath = f"data/empty_forms/editable/cerfa_{num_cerfa}.pdf"
-        _param_filepath = f"data/elements_to_fill_forms/editable/cerfa_{num_cerfa}.json"
-        self.output_filepath = "output/{}/cerfa_{}_v{}.pdf"
+        _input_filepath = os.path.join(
+            get_root_path(),
+            f"data/empty_forms/editable/cerfa_{num_cerfa}.pdf"
+        )
+        _param_filepath = os.path.join(
+            get_root_path(),
+            f"data/elements_to_fill_forms/editable/cerfa_{num_cerfa}.json"
+        )
+        self.output_filepath = os.path.join(
+            get_root_path(),
+            "output/{}/cerfa_{}_v{}.pdf"
+        )
 
         self.doc = fitz.open(_input_filepath)
 
@@ -111,7 +121,13 @@ class Writer:
         :param max_size: Taille maximale du texte (en pt). Par défaut, max_size=13
         :return:
         """
-        with open("data/elements_to_fill_forms/editable/usable_fonts.json", "r", encoding='utf-8') as file:
+        with open(os.path.join(
+            get_root_path(),
+            "data/elements_to_fill_forms/editable/usable_fonts.json"
+            ),
+            "r",
+            encoding='utf-8'
+        ) as file:
             usable_fonts = [x.lower() for x in list(json.loads(file.read()).keys())]
             font = numpy.random.choice(usable_fonts)
             self.doc[0].insert_font(fontname=font, encoding=0)
