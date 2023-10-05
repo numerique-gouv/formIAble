@@ -3,6 +3,8 @@ import os
 from pathlib import Path
 import fitz  # package PyMuPDF
 import PIL.Image
+from tqdm import tqdm
+from PIL import Image
 
 
 def ajout_retour_ligne(text, max_length, font, draw):
@@ -45,3 +47,28 @@ def convert_to_png(path_document_input: str,
     else:
         with PIL.Image.open(path_document_input) as image_input:
             image_input.save(fp=path_document_output, format="PNG")
+
+
+def get_concat_h(im1, im2):
+    dst = Image.new('RGB', (im1.width + im2.width, im1.height))
+    dst.paste(im1, (0, 0))
+    dst.paste(im2, (im1.width, 0))
+    return dst
+
+def pdf_to_image(input_folder, output_folder):
+    os.makedirs(output_folder, exist_ok=True)
+
+    for filename in tqdm(os.listdir(input_folder)):
+        if filename.lower().endswith(".pdf"):
+            # print(f"Processing {filename}")
+            pdf_path = os.path.join(input_folder, filename)
+            images = convert_from_path(pdf_path)
+
+            image = images[0]
+
+            for next_image in images[1:]:
+                image = get_concat_h(image, next_image)
+
+            output_filename = f"{filename[:-4]}.jpg"
+            output_path = os.path.join(output_folder, output_filename)
+            image.save(output_path)
