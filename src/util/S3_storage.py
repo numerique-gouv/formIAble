@@ -124,15 +124,15 @@ def importModelsDataToBucketThroughProfile(pLlmModelsNamesStrs, pBucketNameStr =
                     recursive=True
                 )
 
-        # si le répertoire des fichiers de test des modèles existe sur le conteneur de données pBucketNameStr du point de connexion S3,
-        if lDatalabSSPcloudS3FileSystem.exists(f"s3://{pBucketNameStr}/data/ls_data/divers/test"):
-            print("Import des fichiers de test des modèles")
-            # copie les fichiers de test des modèles depuis le répertoire data/ls_data/divers/test du conteneur de données pBucketNameStr
-            # du point de connexion S3 dans le répertoire ./src/data/synthetic_forms/divers/test
-            # durée de la copie = environ 3 secondes
+        # si le répertoire racine des fichiers d'entraînement et de test des modèles existe sur le conteneur de données pBucketNameStr du point de connexion S3,
+        if lDatalabSSPcloudS3FileSystem.exists(f"s3://{pBucketNameStr}/data/ls_data/divers"):
+            print("Import des fichiers d'entraînement et de test des modèles")
+            # copie les fichiers d'entraînement et de test des modèles depuis le répertoire data/ls_data/divers du conteneur de données pBucketNameStr
+            # du point de connexion S3 dans le répertoire ./src/data/synthetic_forms
+            # durée de la copie = environ 37 secondes
             lDatalabSSPcloudS3FileSystem.get(
-                f"s3://{pBucketNameStr}/data/ls_data/divers/test",
-                "./src/data/synthetic_forms/divers/",
+                f"s3://{pBucketNameStr}/data/ls_data/divers",
+                "./src/data/synthetic_forms/",
                 recursive=True
             )
 
@@ -145,14 +145,14 @@ if __name__ == "__main__":
     print("AWS :\n- Credentials file =", os.environ["AWS_SHARED_CREDENTIALS_FILE"], "\n- S3 end point =", os.environ["AWS_S3_ENDPOINT"], "\n")
     print("Liste des fichiers du conteneur de données")
     print("-", "\n- ".join(getBucketFilesThroughProfile(pBucketNameStr="projet-formiable", pProfileNameStr="projet-formiable")), "\n")
-    print("Import des modèles et des images de test depuis le conteneur de données partagé \"projet-formIAble\" du point de connexion S3 vers le système de fichier")
+    print("Import des modèles et des images d'entraînement et de test depuis le conteneur de données partagé \"projet-formIAble\" du point de connexion S3 vers le système de fichier")
     lBeforeCopyTime = time.time()
     importModelsDataToBucketThroughProfile(
         pLlmModelsNamesStrs = ["donut_trained"],
         pBucketNameStr = "projet-formiable",
         pProfileNameStr = "projet-formiable"
     )
-    print("==> Durée de la copie des modèles et des images de test =", time.time() - lBeforeCopyTime, "secondes\n")
+    print("==> Durée de la copie des modèles et des images d'entraînement et de test =", time.time() - lBeforeCopyTime, "secondes\n")
 #    print("Export des modèles depuis le système de fichier vers le conteneur de données personnel du point de connexion S3")
 #    lBeforeCopyTime = time.time()
 #    exportModelsDataToBucketThroughProfile(
