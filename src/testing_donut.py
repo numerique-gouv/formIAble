@@ -4,7 +4,7 @@ import json
 import datetime
 from PIL import Image
 from sconf import Config
-from src.donut_lib import train
+from donut_lib import train
 from donut import DonutModel
 
 
@@ -48,8 +48,8 @@ if __name__ == "__main__":
     # train_from_config_file(config_path, exp_name)
 
     # run inference
-    model_path = os.path.join("models/donut_trained/divers/20231002_095949")
-    file_path = "data/synthetic_forms/divers/test/cerfa_12485_03_fake32.jpg"
+    model_path = os.path.join("./src/models/donut_trained/20231002_095949")
+    file_path = "./src/data/synthetic_forms/divers/test/cerfa_12485_03_fake32.jpg"
     pred = run_model_on_file(model_path, file_path)
     for k, v in pred.items():
         print(f"{k}: {v}")
