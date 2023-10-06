@@ -37,11 +37,12 @@ def load_data():
 #data_load_state.text("")
 
 st.subheader("Téléversement d'un formulaire au format JPG pour analyse")
-st.write("Actuellement, seuls sont traités les CERFA 12485, 13479 et 14011")
+st.write("Actuellement, seuls sont traités les CERFA 12485, 13479 et 14011.")
 uploadedFile = st.file_uploader("Téléversez votre fichier JPG", type="jpg")
 if uploadedFile is not None:
     image = Image.open(uploadedFile)
     st.write("Image téléversée avec succès")
+    st.subheader("Affichage du formulaire téléversé")
     # affiche l'image dans l'application
     st.image(np.array(image))
     with NamedTemporaryFile(dir=".", suffix=".jpg") as withPathTemporaryUploadedFile:
@@ -52,6 +53,7 @@ if uploadedFile is not None:
         # chemin absolu du fichier téléversé, stocké temporairerement, de la forme /home/onyxia/work/formIAble/tmpXXXXX.jpg
         uploadedFileFullPathStr = withPathTemporaryUploadedFile.name
         fieldsNamesAndValuesStrs = run_model_on_file(modelPathStr, uploadedFileFullPathStr)
+        st.subheader("Résultat de l'analyse du formulaire téléversé")
         st.write(f"Couples \"nom du champ : valeur du champ\" lus dans le fichier {uploadedFile.name}")
         # affiche les couples clefs-valeurs reconnus
         for fieldNameStr, fieldValueStr in fieldsNamesAndValuesStrs.items():
