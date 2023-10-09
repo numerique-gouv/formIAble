@@ -55,7 +55,7 @@ if uploadedFile is not None:
             uploadedFileFullPathStr = withPathTemporaryUploadedFile.name
             fieldsNamesAndValuesStrs = run_model_on_file(modelPathStr, uploadedFileFullPathStr)
             st.subheader("Résultat de l'analyse du formulaire téléversé")
-            st.write(f"Couples \"nom du champ : valeur du champ\" lus dans le fichier {uploadedFile.name}")
+            st.write(f"Couples \"**nom du champ** : valeur du champ\" lus dans le fichier {uploadedFile.name}")
             # affiche les couples clefs-valeurs reconnus par DonUT et triés alphabétiquement par clef
             for fieldNameStr, fieldValueStr in sorted(fieldsNamesAndValuesStrs.items()):
                 st.write(f"* **{fieldNameStr}** : {fieldValueStr}")

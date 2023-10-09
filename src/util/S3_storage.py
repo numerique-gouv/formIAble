@@ -3,9 +3,6 @@ import os
 # import le module d'analyse syntaxique de fichiers de configuration
 import configparser
 
-# importe le module de journalisation
-import logging
-
 # importe le module Boto3 permettant de créer, configurer et gérer des Amazon Web Services (AWS), tels que S3 (Simple Storage Service) ou EKS (Elastic Kubernetes Service)
 import boto3
 # importe le module S3FS permettant de gérer des conteneurs de données (buckets) Amazon S3 (Simple Storage Service)
@@ -32,9 +29,23 @@ os.environ["AWS_SHARED_CREDENTIALS_FILE"] = "./security/AWScredentials.info"
 
 
 
-# retourne la liste des fichiers présents dans le conteneur de données pBucketNameStr du point de connexion S3 en utilisant les
-# informations de connexion du profil pProfileNameStr
-def getBucketFilesThroughProfile(pBucketNameStr = "projet-formiable", pProfileNameStr = "projet-formiable"):
+def getBucketFilesThroughProfile(pBucketNameStr : str = "projet-formiable", pProfileNameStr : str = "projet-formiable"):
+    r"""Retourne la liste des fichiers présents dans le conteneur de données `pBucketNameStr` du point de connexion S3 en utilisant les
+    informations de connexion du profil `pProfileNameStr`.
+
+    Parameters
+    ----------
+    pBucketNameStr : str, default="projet-formiable"
+        le nom du conteneur de données du point de connexion S3 dont les fichiers doivent être listés.
+    pProfileNameStr : str, default="projet-formiable"
+        le nom du profil S3 dont les informations de connexion sont utilisées pour accéder au conteneur de données `pBucketNameStr`.
+
+    Returns
+    -------
+    list of S3 files/strings
+        la liste des fichiers présents dans le conteur de données, ou un message d'erreur encapsulé dans une liste si le profil `pProfileNameStr`
+        ne figure pas parmi les profils présents dans le fichier ``AWScredentials.info`` des profils.
+    """
     lConfigurationParser = configparser.ConfigParser()
     # si le fichier des informations de connexion aux services AWS fait partie de la liste des fichiers analysés avec succès (renvoyée par read)
     # par l'analyseur syntaxique
@@ -60,9 +71,20 @@ def getBucketFilesThroughProfile(pBucketNameStr = "projet-formiable", pProfileNa
         return "Erreur lors de l'analyse du fichier des informations de connexion aux services AWS"
 
 
-# exporte l'ensemble des données (tokens et tokenizers, mais aussi cache) des modèles pLlmModelsNamesStrs présents sur le service Kubernetes
-# exécutant ce notebook dans le conteneur de données pBucketNameStr du point de connexion S3 en utilisant les informations de connexion du profil pProfileNameStr
-def exportModelsDataToBucketThroughProfile(pLlmModelsNamesStrs, pBucketNameStr = "projet-formiable", pProfileNameStr = "projet-formiable"):
+def exportModelsDataToBucketThroughProfile(pLlmModelsNamesStrs, pBucketNameStr : str = "projet-formiable", pProfileNameStr : str = "projet-formiable"):
+    r"""Exporte l'ensemble des données (tokens, tokenizers et cache, mais aussi images d'entraînement et de test) des modèles `pLlmModelsNamesStrs`
+    présents sur le service Kubernetes exécutant ce notebook dans le conteneur de données `pBucketNameStr` du point de connexion S3 en utilisant les
+    informations de connexion du profil `pProfileNameStr`.
+
+    Parameters
+    ----------
+    pLlmModelsNamesStrs : list of str
+        la liste des noms des modèles à exporter
+    pBucketNameStr : str, default="projet-formiable"
+        le nom du conteneur de données du point de connexion S3 dont les fichiers doivent être listés.
+    pProfileNameStr : str, default="projet-formiable"
+        le nom du profil S3 dont les informations de connexion sont utilisées pour accéder au conteneur de données `pBucketNameStr`.
+    """
     lConfigurationParser = configparser.ConfigParser()
     # si le fichier des informations de connexion aux services AWS fait partie de la liste des fichiers analysés avec succès (renvoyée par read)
     # par l'analyseur syntaxique
@@ -94,10 +116,20 @@ def exportModelsDataToBucketThroughProfile(pLlmModelsNamesStrs, pBucketNameStr =
                 )
 
 
-# importe l'ensemble des données (tokens et tokenizers, mais aussi cache) des modèles pLlmModelsNamesStrs dans les répertoires ../models
-# et de cache du service Kubernetes exécutant ce notebook, depuis le conteneur de données pBucketNameStr du point de connexion S3 en utilisant les
-# informations de connexion du profil pProfileNameStr
-def importModelsDataToBucketThroughProfile(pLlmModelsNamesStrs, pBucketNameStr = "projet-formiable", pProfileNameStr = "projet-formiable"):
+def importModelsDataToBucketThroughProfile(pLlmModelsNamesStrs, pBucketNameStr : str = "projet-formiable", pProfileNameStr : str = "projet-formiable"):
+    r"""Importe l'ensemble des données (tokens, tokenizers et cache, mais aussi images d'entraînement et de test) des modèles `pLlmModelsNamesStrs`
+    dans des sous-répertoires de ``./src`` du service Kubernetes exécutant ce notebook, depuis le conteneur de données `pBucketNameStr` du point
+    de connexion S3 en utilisant les informations de connexion du profil `pProfileNameStr`.
+
+    Parameters
+    ----------
+    pLlmModelsNamesStrs : list of str
+        la liste des noms des modèles à exporter
+    pBucketNameStr : str, default="projet-formiable"
+        le nom du conteneur de données du point de connexion S3 dont les fichiers doivent être listés.
+    pProfileNameStr : str, default="projet-formiable"
+        le nom du profil S3 dont les informations de connexion sont utilisées pour accéder au conteneur de données `pBucketNameStr`.
+    """
     lConfigurationParser = configparser.ConfigParser()
     # si le fichier des informations de connexion aux services AWS fait partie de la liste des fichiers analysés avec succès (renvoyée par read)
     # par l'analyseur syntaxique
