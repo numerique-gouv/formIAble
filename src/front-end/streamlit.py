@@ -45,18 +45,19 @@ if uploadedFile is not None:
     st.subheader("Affichage du formulaire téléversé")
     # affiche l'image dans l'application
     st.image(np.array(image))
-    with NamedTemporaryFile(dir=".", suffix=".jpg") as withPathTemporaryUploadedFile:
-        # chemin relatif du modèle DonUT
-        modelPathStr = os.path.join("./src/models/donut_trained/20231002_095949")
-        # sauvegarde temporairement sur le service le fichier téléversé
-        withPathTemporaryUploadedFile.write(uploadedFile.getbuffer())
-        # chemin absolu du fichier téléversé, stocké temporairerement, de la forme /home/onyxia/work/formIAble/tmpXXXXX.jpg
-        uploadedFileFullPathStr = withPathTemporaryUploadedFile.name
-        fieldsNamesAndValuesStrs = run_model_on_file(modelPathStr, uploadedFileFullPathStr)
-        st.subheader("Résultat de l'analyse du formulaire téléversé")
-        st.write(f"Couples \"nom du champ : valeur du champ\" lus dans le fichier {uploadedFile.name}")
-        # affiche les couples clefs-valeurs reconnus
-        for fieldNameStr, fieldValueStr in fieldsNamesAndValuesStrs.items():
-            st.write(f"* {fieldNameStr} : {fieldValueStr}")
+    with st.spinner(text="Analyse du document en cours..."):
+        with NamedTemporaryFile(dir=".", suffix=".jpg") as withPathTemporaryUploadedFile:
+            # chemin relatif du modèle DonUT
+            modelPathStr = os.path.join("./src/models/donut_trained/20231002_095949")
+            # sauvegarde temporairement sur le service le fichier téléversé
+            withPathTemporaryUploadedFile.write(uploadedFile.getbuffer())
+            # chemin absolu du fichier téléversé, stocké temporairerement, de la forme /home/onyxia/work/formIAble/tmpXXXXX.jpg
+            uploadedFileFullPathStr = withPathTemporaryUploadedFile.name
+            fieldsNamesAndValuesStrs = run_model_on_file(modelPathStr, uploadedFileFullPathStr)
+            st.subheader("Résultat de l'analyse du formulaire téléversé")
+            st.write(f"Couples \"nom du champ : valeur du champ\" lus dans le fichier {uploadedFile.name}")
+            # affiche les couples clefs-valeurs reconnus par DonUT et triés alphabétiquement par clef
+            for fieldNameStr, fieldValueStr in sorted(fieldsNamesAndValuesStrs.items()):
+                st.write(f"* **{fieldNameStr}** : {fieldValueStr}")
 #else:
 #    st.write("Merci de téléverser une image au format JPG uniquement !")
