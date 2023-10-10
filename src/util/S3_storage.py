@@ -64,11 +64,11 @@ def getBucketFilesThroughProfile(pBucketNameStr : str = "projet-formiable", pPro
         lDatalabSSPcloudS3FileSystemConnectionParameters = {"endpoint_url": f"https://{os.environ['AWS_S3_ENDPOINT']}"} | lDatalabSSPcloudAWScredentialsDictionary
         # système de fichier du point de connexion S3
         lDatalabSSPcloudS3FileSystem = s3fs.S3FileSystem(client_kwargs=lDatalabSSPcloudS3FileSystemConnectionParameters)
-#        lDatalabSSPcloudS3FileSystem.rm(f"s3://{pBucketNameStr}/LLM/fakeModel/", recursive=True)
+#        lDatalabSSPcloudS3FileSystem.rm(f"s3://{pBucketNameStr}/data/models/fakeModel/", recursive=True)
         # retourne la liste les fichiers du conteneur de données pBucketNameStr
         return lDatalabSSPcloudS3FileSystem.find(f"s3://{pBucketNameStr}/")
     else:
-        return "Erreur lors de l'analyse du fichier des informations de connexion aux services AWS"
+        return ["Erreur lors de l'analyse du fichier des informations de connexion aux services AWS"]
 
 
 def exportModelsDataToBucketThroughProfile(pModelsNamesStrs, pBucketNameStr : str = "projet-formiable", pProfileNameStr : str = "projet-formiable"):
