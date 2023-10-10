@@ -71,17 +71,17 @@ def getBucketFilesThroughProfile(pBucketNameStr : str = "projet-formiable", pPro
         return "Erreur lors de l'analyse du fichier des informations de connexion aux services AWS"
 
 
-def exportModelsDataToBucketThroughProfile(pLlmModelsNamesStrs, pBucketNameStr : str = "projet-formiable", pProfileNameStr : str = "projet-formiable"):
-    r"""Exporte l'ensemble des données (tokens, tokenizers et cache, mais aussi images d'entraînement et de test) des modèles `pLlmModelsNamesStrs`
+def exportModelsDataToBucketThroughProfile(pModelsNamesStrs, pBucketNameStr : str = "projet-formiable", pProfileNameStr : str = "projet-formiable"):
+    r"""Exporte l'ensemble des données (tokens, tokenizers et cache, mais aussi images d'entraînement et de test) des modèles `pModelsNamesStrs`
     présents sur le service Kubernetes exécutant ce notebook dans le conteneur de données `pBucketNameStr` du point de connexion S3 en utilisant les
     informations de connexion du profil `pProfileNameStr`.
 
     Parameters
     ----------
-    pLlmModelsNamesStrs : list of str
+    pModelsNamesStrs : list of str
         la liste des noms des modèles à exporter
     pBucketNameStr : str, default="projet-formiable"
-        le nom du conteneur de données du point de connexion S3 dont les fichiers doivent être listés.
+        le nom du conteneur de données du point de connexion S3 sur lequel les fichiers doivent être exportés.
     pProfileNameStr : str, default="projet-formiable"
         le nom du profil S3 dont les informations de connexion sont utilisées pour accéder au conteneur de données `pBucketNameStr`.
     """
@@ -103,7 +103,7 @@ def exportModelsDataToBucketThroughProfile(pLlmModelsNamesStrs, pBucketNameStr :
             lDatalabSSPcloudS3FileSystem.mkdirs(f"s3://{pBucketNameStr}/data/models/")
 
         # copie les données de chaque modèle dans le répertoire LLM du conteneur de données pBucketNameStr du point de connexion S3
-        for lLlmModelNameStr in pLlmModelsNamesStrs:
+        for lLlmModelNameStr in pModelsNamesStrs:
             # si le répertoire du modèle n'existe pas déjà,
             if not lDatalabSSPcloudS3FileSystem.exists(f"s3://{pBucketNameStr}/data/models/{lLlmModelNameStr}/"):
                 print(f"Export des données du modèle {lLlmModelNameStr}")
@@ -116,17 +116,17 @@ def exportModelsDataToBucketThroughProfile(pLlmModelsNamesStrs, pBucketNameStr :
                 )
 
 
-def importModelsDataToBucketThroughProfile(pLlmModelsNamesStrs, pBucketNameStr : str = "projet-formiable", pProfileNameStr : str = "projet-formiable"):
-    r"""Importe l'ensemble des données (tokens, tokenizers et cache, mais aussi images d'entraînement et de test) des modèles `pLlmModelsNamesStrs`
+def importModelsDataToBucketThroughProfile(pModelsNamesStrs, pBucketNameStr : str = "projet-formiable", pProfileNameStr : str = "projet-formiable"):
+    r"""Importe l'ensemble des données (tokens, tokenizers et cache, mais aussi images d'entraînement et de test) des modèles `pModelsNamesStrs`
     dans des sous-répertoires de ``./src`` du service Kubernetes exécutant ce notebook, depuis le conteneur de données `pBucketNameStr` du point
     de connexion S3 en utilisant les informations de connexion du profil `pProfileNameStr`.
 
     Parameters
     ----------
-    pLlmModelsNamesStrs : list of str
-        la liste des noms des modèles à exporter
+    pModelsNamesStrs : list of str
+        la liste des noms des modèles à importer
     pBucketNameStr : str, default="projet-formiable"
-        le nom du conteneur de données du point de connexion S3 dont les fichiers doivent être listés.
+        le nom du conteneur de données du point de connexion S3 depuis lequel les fichiers doivent être importés.
     pProfileNameStr : str, default="projet-formiable"
         le nom du profil S3 dont les informations de connexion sont utilisées pour accéder au conteneur de données `pBucketNameStr`.
     """
@@ -144,7 +144,7 @@ def importModelsDataToBucketThroughProfile(pLlmModelsNamesStrs, pBucketNameStr :
         lDatalabSSPcloudS3FileSystem = s3fs.S3FileSystem(client_kwargs=lDatalabSSPcloudS3FileSystemConnectionParameters)
 
         # copie les fichiers générés de chaque modèle depuis le répertoire du modèle présent dans le conteneur de données pBucketNameStr du point de connexion S3
-        for lLlmModelNameStr in pLlmModelsNamesStrs:
+        for lLlmModelNameStr in pModelsNamesStrs:
             # si le répertoire du modèle existe sur le conteneur de données pBucketNameStr du point de connexion S3,
             if lDatalabSSPcloudS3FileSystem.exists(f"s3://{pBucketNameStr}/data/models/{lLlmModelNameStr}/"):
                 print(f"Import des données du modèle {lLlmModelNameStr}")
@@ -180,7 +180,7 @@ if __name__ == "__main__":
     print("Import des modèles et des images d'entraînement et de test depuis le conteneur de données partagé \"projet-formIAble\" du point de connexion S3 vers le système de fichier")
     lBeforeCopyTime = time.time()
     importModelsDataToBucketThroughProfile(
-        pLlmModelsNamesStrs = ["donut_trained"],
+        pModelsNamesStrs = ["donut_trained"],
         pBucketNameStr = "projet-formiable",
         pProfileNameStr = "projet-formiable"
     )
@@ -188,7 +188,7 @@ if __name__ == "__main__":
 #    print("Export des modèles depuis le système de fichier vers le conteneur de données personnel du point de connexion S3")
 #    lBeforeCopyTime = time.time()
 #    exportModelsDataToBucketThroughProfile(
-#        pLlmModelsNamesStrs = ["donut_trained"],
+#        pModelsNamesStrs = ["donut_trained"],
 #        pBucketNameStr = "myPersonalBucket",
 #        pProfileNameStr = "personal"
 #    )
