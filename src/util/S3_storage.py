@@ -73,7 +73,7 @@ def getBucketFilesThroughProfile(pBucketNameStr : str = "projet-formiable", pPro
 
 def exportModelsDataToBucketThroughProfile(pModelsNamesStrs, pBucketNameStr : str = "projet-formiable", pProfileNameStr : str = "projet-formiable"):
     r"""Exporte l'ensemble des données (tokens, tokenizers et cache, mais aussi images d'entraînement et de test) des modèles `pModelsNamesStrs`
-    présents sur le service Kubernetes exécutant ce notebook dans le conteneur de données `pBucketNameStr` du point de connexion S3 en utilisant les
+    présents sur le service Kubernetes hébergeant ce module dans le conteneur de données `pBucketNameStr` du point de connexion S3 en utilisant les
     informations de connexion du profil `pProfileNameStr`.
 
     Parameters
@@ -118,7 +118,7 @@ def exportModelsDataToBucketThroughProfile(pModelsNamesStrs, pBucketNameStr : st
 
 def importModelsDataToBucketThroughProfile(pModelsNamesStrs, pBucketNameStr : str = "projet-formiable", pProfileNameStr : str = "projet-formiable"):
     r"""Importe l'ensemble des données (tokens, tokenizers et cache, mais aussi images d'entraînement et de test) des modèles `pModelsNamesStrs`
-    dans des sous-répertoires de ``./src`` du service Kubernetes exécutant ce notebook, depuis le conteneur de données `pBucketNameStr` du point
+    dans des sous-répertoires de ``./src`` du service Kubernetes hébergeant ce module, depuis le conteneur de données `pBucketNameStr` du point
     de connexion S3 en utilisant les informations de connexion du profil `pProfileNameStr`.
 
     Parameters
