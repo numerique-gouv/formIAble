@@ -148,7 +148,7 @@ def importModelsDataToBucketThroughProfile(pModelsNamesStrs, pBucketNameStr : st
             # si le répertoire du modèle existe sur le conteneur de données pBucketNameStr du point de connexion S3,
             if lDatalabSSPcloudS3FileSystem.exists(f"s3://{pBucketNameStr}/data/models/{lLlmModelNameStr}/"):
                 print(f"Import des données du modèle {lLlmModelNameStr}")
-                # en copie les données dans le répertoire ../models
+                # en copie les données dans le répertoire ./src/models
                 # durée de la copie = environ 43 secondes pour 2.4 Go
                 lDatalabSSPcloudS3FileSystem.get(
                     f"s3://{pBucketNameStr}/data/models/{lLlmModelNameStr}",
