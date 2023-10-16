@@ -20,7 +20,7 @@ def extract_document(path_document_input: str,
     The cerfa number is ocr-ised, then the corresponding configuration file cerfa_*****_**.json
     is searched for in path_dir_configs.
     If save_annotated_document is set,
-    save input document after auto-transformation and plotting reference and extracted boxes.
+    input document is saved after auto-transformation, along with reference boxes and extracted boxes.
     """
 
     # export to png to facilitate subsequent operations
