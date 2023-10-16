@@ -49,7 +49,6 @@ def find_intersecting_points_convex_polygons(vertices_polygon1: Union[np.ndarray
             if new_area <= area_polygon_to_look_in + epsilon:
                 intersecting_points.append(vertex)
 
-    print(intersecting_points)
     # convert to array to enable slicing with a list of indexes
     vertices_polygon1_ = np.array(vertices_polygon1)
     vertices_polygon2_ = np.array(vertices_polygon2)
@@ -67,7 +66,6 @@ def find_intersecting_points_convex_polygons(vertices_polygon1: Union[np.ndarray
                 intersecting_points.append(intersection)
             previous_index_polygon2 = index_polygon2
         previous_index_polygon1 = index_polygon1
-    print(intersecting_points)
     return intersecting_points
 
 
