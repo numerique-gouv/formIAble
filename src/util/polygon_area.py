@@ -14,15 +14,13 @@ def segment_intersection(vertices_segment1: np.ndarray,
         return None
     t: float = np.linalg.det([vertices_segment2[1, :] - vertices_segment1[1, :],
                               vertices_segment2[1, :] - vertices_segment2[0, :]]) / det
-
-    raise NotImplementedError
-    if 0 <= t <= 1:
-        # print(vertices_segment1)
-        # print(vertices_segment2)
-        # print(vertices_segment1[0, :] * t + vertices_segment1[1, :] * (1 - t))
+    t_prime: float = np.linalg.det([vertices_segment1[0, :] - vertices_segment1[1, :],
+                                    vertices_segment2[1, :] - vertices_segment1[1, :]]) / det
+    if 0 <= t <= 1 and 0 <= t_prime <= 1:
         return vertices_segment1[0, :] * t + vertices_segment1[1, :] * (1 - t)
     else:
         return None
+
 
 def find_intersecting_points_convex_polygons(vertices_polygon1: Union[np.ndarray, List],
                                              vertices_polygon2: Union[np.ndarray, List],
