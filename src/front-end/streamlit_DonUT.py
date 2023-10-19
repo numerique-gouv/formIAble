@@ -1,30 +1,21 @@
-from donut import DonutModel
 from PIL import Image
 from tempfile import NamedTemporaryFile
-import json
 import numpy as np
 import os
 import streamlit as st
-import torch
 
-
-# copie de la fonction de src/testing_donut.py car problème (de chemin) d'accès au module src/donut_lib dans l'application web
-def run_model_on_file(model_path, file_path):
-    with open(os.path.join(model_path, 'special_tokens_map.json'), "r") as file:
-        special_tokens = json.load(file)
-        prompt = special_tokens["additional_special_tokens"][0]
-    model = DonutModel.from_pretrained(model_path, ignore_mismatched_sizes=True)
-    if torch.cuda.is_available():
-        model.half()
-        device = torch.device("cuda")
-        model.to(device)
-    else:
-        model.to("cpu")
-    model.eval()
-    image = Image.open(file_path).convert("RGB")
-    with torch.no_grad():
-        output = model.inference(image=image, prompt=prompt)
-        return output["predictions"][0]
+# importe le module des classes représentant le système de fichiers avec la sémantique appropriée pour différents systèmes d'exploitation
+# (chemins orientés objet)
+from pathlib import Path
+# se positionne sur le chemin de travail courant
+cwd = Path().resolve()
+# importe le module des paramètres et fonctions systèmes
+import sys
+# ajoute le chemin de travail courant à la variable concaténant les répertoires système afin de permettre l'import
+# de modules présents dans les sous-répertoires dudit répertoire
+sys.path.append(str(cwd))
+# importe le module d'exécution du modèle DonUT
+import src.testing_donut as dot
 
 
 st.title("Analyse automatique de formulaires CERFA")
@@ -48,12 +39,12 @@ if uploadedFile is not None:
     with st.spinner(text="Analyse du document en cours..."):
         with NamedTemporaryFile(dir=".", suffix=".jpg") as withPathTemporaryUploadedFile:
             # chemin relatif du modèle DonUT
-            modelPathStr = os.path.join("./src/models/donut_trained/20231002_095949")
+            modelPathStr = os.path.join("./data/models/donut_trained/20231002_095949")
             # sauvegarde temporairement sur le service le fichier téléversé
             withPathTemporaryUploadedFile.write(uploadedFile.getbuffer())
             # chemin absolu du fichier téléversé, stocké temporairerement, de la forme /home/onyxia/work/formIAble/tmpXXXXX.jpg
             uploadedFileFullPathStr = withPathTemporaryUploadedFile.name
-            fieldsNamesAndValuesStrs = run_model_on_file(modelPathStr, uploadedFileFullPathStr)
+            fieldsNamesAndValuesStrs = dot.run_model_on_file(modelPathStr, uploadedFileFullPathStr)
             st.subheader("Résultat de l'analyse du formulaire téléversé")
             st.write(f"Couples \"**nom du champ** : valeur du champ\" lus dans le fichier {uploadedFile.name}")
             # affiche les couples clefs-valeurs reconnus par DonUT et triés alphabétiquement par clef
