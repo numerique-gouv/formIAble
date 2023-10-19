@@ -1,0 +1,14 @@
+{
+	"fields_to_extract": {
+		"nom_assure": [765, 581, 1994, 60],
+		"prenom_assure": [765, 660, 1994, 60],
+		"nom_beneficiaire": [762, 990, 1998, 60],
+		"prenom_beneficiaire": [762, 1075, 1998, 60],
+		"adresse_assure": [[768, 1426, 1992, 60], [768, 1508, 1992, 60], [768, 1580, 1992, 60]],
+		"references_cabinet": [124, 1965, 1312, 345],
+		"nom_medecin": [1718, 2008, 1045, 60],
+		"prenom_medecin": [1718, 2096, 1045, 60],
+		"nom_beneficiaire_signature": [138, 3024, 1272, 93],
+		"nom_medecin_signature": [1470, 3024, 1272, 93]
+	}
+}
