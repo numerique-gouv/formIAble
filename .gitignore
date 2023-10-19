@@ -134,6 +134,7 @@ dmypy.json
 .pytype/
 .idea/
 
+temp_cerfa_*.png
 /data/models
 /data/signatures
 /security/AWScredentials.info

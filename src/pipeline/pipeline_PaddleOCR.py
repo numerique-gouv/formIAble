@@ -25,17 +25,28 @@ def extract_document(path_document_input: str,
 
     # export to png to facilitate subsequent operations
     name_document_input_with_extention_png: str = f"{os.path.splitext(os.path.basename(path_document_input))[0]}.png"
+    logging.debug(f"Nom de l'image PNG = {name_document_input_with_extention_png}")
     path_document_png: str = f"temp_{name_document_input_with_extention_png}"
     utils.convert_to_png(path_document_input=path_document_input,
                          path_document_output=path_document_png)
 
     # ocr input document to get texts and box corners
     ocr_result_image_input = ocr_model.ocr(img=path_document_png, det=True, rec=True, cls=True)
-    boxes_document_input: List[List[Tuple[int, int]]] = [box_and_text[0] for box_and_text in ocr_result_image_input[0]]
-    texts_document_input: List[str] = [box_and_text[1][0] for box_and_text in ocr_result_image_input[0]]
+    logging.debug("Nombre de résultats extraits par OCR =", len(ocr_result_image_input))
+    # boîtes de contour des textes extraits
+    for lBoxIdx, lBox in enumerate([box_and_text[0] for box_and_text in ocr_result_image_input]):
+        logging.debug(f"Boîte n° {lBoxIdx} = {lBox}")
+    # textes extraits avec score
+    for lTextAndScoreIdx, lTextAndScoreStr in enumerate([box_and_text[1] for box_and_text in ocr_result_image_input]):
+        logging.debug(f"Texte et score n° {lTextAndScoreIdx} = {lTextAndScoreStr}")
+    # liste des boîtes de contour des textes extraits
+    boxes_document_input: List[List[Tuple[int, int]]] = [box_and_text[0] for box_and_text in ocr_result_image_input]
+    # liste des textes extraits
+    texts_document_input: List[str] = [box_and_text[1][0] for box_and_text in ocr_result_image_input]
 
     # automatically extract reference to find reference config
     reference: str = src.models.classify_form.PaddleOCR_TextMatch.classify.get_reference_from_texts(
+        image_path=path_document_input,
         texts=texts_document_input
     )
     logging.debug(f"path_document_input = {path_document_input}, extracted reference {reference}")
