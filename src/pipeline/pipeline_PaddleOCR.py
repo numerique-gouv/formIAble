@@ -89,7 +89,7 @@ def extract_document(path_document_input: str,
 
     os.remove(path_document_png)
     os.remove(path_image_auto_transformed)
-    raise NotImplementedError
+#    raise NotImplementedError
 
 
 def register_document(path_document_to_register: str,
