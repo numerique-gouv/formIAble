@@ -4,6 +4,7 @@ import logging
 import re
 import paddleocr
 
+
 CERFA_REFERENCE_REGEX: str = r"\d{5}\s?\*\s?\d{2}\s*$"  # passed to re.search
 
 
@@ -26,7 +27,7 @@ def get_reference(image_path: str,
         rec=True,
         cls=True
     )
-    text_contents = [text_and_score[1][0] for text_and_score in ocr_result[0]]
+    text_contents = [text_and_score[1][0] for text_and_score in ocr_result]
     return get_reference_from_texts(image_path=image_path, texts=text_contents)
 
 
