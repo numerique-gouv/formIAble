@@ -22,25 +22,24 @@ def extract_document(path_document_input: str,
     If save_annotated_document is set,
     input document is saved after auto-transformation, along with reference boxes and extracted boxes.
     """
-
-    # export to png to facilitate subsequent operations
-    name_document_input_with_extention_png: str = f"{os.path.splitext(os.path.basename(path_document_input))[0]}.png"
-    logging.debug(f"Nom de l'image PNG = {name_document_input_with_extention_png}")
-    path_document_png: str = f"temp_{name_document_input_with_extention_png}"
-    utils.convert_to_png(path_document_input=path_document_input,
-                         path_document_output=path_document_png)
+    # export to PNG image to facilitate subsequent operations
+    resulting_image, png_document_path_str = utils.get_and_save_image_and_path_from_document(
+        input_document_path=path_document_input,
+        output_image_format="PNG",
+        output_image_quality_in_dpi=350
+    )
 
     # ocr input document to get texts and box corners
-    ocr_result_image_input = ocr_model.ocr(img=path_document_png, det=True, rec=True, cls=True)
+    ocr_result_image_input = ocr_model.ocr(img=png_document_path_str, det=True, rec=True, cls=True)
     logging.debug("Nombre de résultats extraits par OCR =", len(ocr_result_image_input))
+    # liste des boîtes de contour des textes extraits
+    boxes_document_input: List[List[Tuple[int, int]]] = [box_and_text[0] for box_and_text in ocr_result_image_input]
     # boîtes de contour des textes extraits
-    for lBoxIdx, lBox in enumerate([box_and_text[0] for box_and_text in ocr_result_image_input]):
+    for lBoxIdx, lBox in enumerate(boxes_document_input):
         logging.debug(f"Boîte n° {lBoxIdx} = {lBox}")
     # textes extraits avec score
     for lTextAndScoreIdx, lTextAndScoreStr in enumerate([box_and_text[1] for box_and_text in ocr_result_image_input]):
         logging.debug(f"Texte et score n° {lTextAndScoreIdx} = {lTextAndScoreStr}")
-    # liste des boîtes de contour des textes extraits
-    boxes_document_input: List[List[Tuple[int, int]]] = [box_and_text[0] for box_and_text in ocr_result_image_input]
     # liste des textes extraits
     texts_document_input: List[str] = [box_and_text[1][0] for box_and_text in ocr_result_image_input]
 
@@ -65,16 +64,18 @@ def extract_document(path_document_input: str,
     )
 
     # Auto rotate and save to another file to avoid file conflicts
-    path_image_auto_transformed: str = f"auto_transformed_{name_document_input_with_extention_png}"
+    png_document_without_prefix_path_str = \
+        png_document_path_str.removeprefix(f"{utils.TEMPORARY_FILE_DIRECTORY_STR}/{utils.TEMPORARY_FILE_PREFIX_STR}_")
+    path_image_auto_transformed: str = f"{utils.TEMPORARY_FILE_DIRECTORY_STR}/auto_transformed_{png_document_without_prefix_path_str}"
     matrix_transformation: np.ndarray = src.models.auto_rotation_translation.functions.affine_transform_from_boxes(
-        path_image_input=path_document_png,
+        path_image_input=png_document_path_str,
         path_image_output=path_image_auto_transformed,
         boxes_image_input=matching_boxes_document_input,
         boxes_image_reference=config_reference["boxes_reference"],
         size_image_output=config_reference["size_reference"]
     )
 
-    pickle.dump(matrix_transformation, open("dump_matrix_transformation", "wb"))
+    pickle.dump(matrix_transformation, open(f"{utils.TEMPORARY_FILE_DIRECTORY_STR}/dump_matrix_transformation", "wb"))
 
     # Apply transformation to each input box to compare with reference boxes
     boxes_input_after_transform: List[List[np.ndarray]] = []
@@ -87,7 +88,7 @@ def extract_document(path_document_input: str,
     for box_after_transform, text in zip(boxes_input_after_transform, texts_document_input):
         logging.debug(f"{text} ----- {box_after_transform}")
 
-    os.remove(path_document_png)
+    os.remove(png_document_path_str)
     os.remove(path_image_auto_transformed)
 #    raise NotImplementedError
 
@@ -96,10 +97,11 @@ def register_document(path_document_to_register: str,
                       path_dir_reference_documents: str,
                       texts_reference: List[str],
                       ocr_model: paddleocr.PaddleOCR) -> None:
-    """Register a document
-    The fields to extract are supposed to be in a configuration file
-    named cerfa_*****_**.json in directory path_dir_reference_documents, where
-    the document is supposed to be named cerfa_*****_** (see convert_to_png for accepted extensions).
+    """Registers a document.
+    The fields to extract are supposed to be in a configuration file named
+    cerfa_*****_**.json in the directory path_dir_reference_documents, where
+    the document is supposed to be named cerfa_*****_**
+    (see src.util.utils.get_and_save_image_from_document for accepted extensions).
     The document is exported to png and saved in path_dir_reference_documents
     Text elements of texts_reference are detected in the document and added
     in the configuration file cerfa_*****_**.json.
@@ -110,8 +112,12 @@ def register_document(path_document_to_register: str,
 
     path_config: str = os.path.join(path_dir_reference_documents, f"{name_document_to_register}.json")
     path_image_reference: str = os.path.join(path_dir_reference_documents, f"{name_document_to_register}.png")
-    utils.convert_to_png(path_document_input=path_document_to_register,
-                         path_document_output=path_image_reference)
+    utils.get_and_save_image_from_document(
+        input_document_path=path_document_to_register,
+        output_image_path=path_image_reference,
+        output_image_format="PNG",
+        output_image_quality_in_dpi=350
+    )
 
     # Get boxes and size from reference image, to later perform match with input image
     ocr_result_image_reference = ocr_model.ocr(img=path_image_reference, det=True, rec=True, cls=False)

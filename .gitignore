@@ -134,9 +134,11 @@ dmypy.json
 .pytype/
 .idea/
 
-temp_cerfa_*.png
 /data/models
 /data/signatures
+/data/tmp
+#/data/tmp/dump_matrix_transformation
+#/data/tmp/temp_cerfa_*.png
 /security/AWScredentials.info
 /src/data/synthetic_forms
 /src/models/craft_text_detector/models/craft_mlt_25k.pth

@@ -4,10 +4,10 @@ import paddleocr
 # importe le module des classes représentant le système de fichiers avec la sémantique appropriée pour différents systèmes d'exploitation
 # (chemins orientés objet)
 from pathlib import Path
-# se positionne sur le chemin de travail courant
-cwd = Path().resolve()
 # importe le module des paramètres et fonctions systèmes
 import sys
+# se positionne sur le chemin de travail courant
+cwd = Path().resolve()
 # ajoute le chemin de travail courant à la variable concaténant les répertoires système afin de permettre l'import
 # de modules présents dans les sous-répertoires dudit répertoire
 sys.path.append(str(cwd))

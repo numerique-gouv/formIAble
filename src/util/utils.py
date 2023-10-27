@@ -1,11 +1,26 @@
+# importe le module permettant la compatibilité avec les conseils sur le typage (type hints)
+from typing import Final, List, Tuple
 from pdf2image import convert_from_path
+# importe le module OS pour l'accès aux fonctions de gestion de fichiers et de chemins
 import os
+# importe le module des classes représentant le système de fichiers avec la sémantique appropriée pour différents
+# systèmes d'exploitation (chemins orientés objet)
 from pathlib import Path
 # importe le module de PyMuPDF permettant d'afficher et de manipuler par divers outils des documents PDF via Python
 import fitz
-import PIL.Image
+import logging
 from tqdm import tqdm
+# importe le module de gestion des images (Python Imaging Library)
 from PIL import Image
+
+
+# --- Constantes ---
+# répertoire des fichiers temporaires
+TEMPORARY_FILE_DIRECTORY_STR: Final[str] = "./data/tmp"
+# préfixe des fichiers temporaires
+TEMPORARY_FILE_PREFIX_STR: Final[str] = "temp"
+# liste des extensions d'image acceptées
+VALID_OUTPUT_IMAGE_EXTENSIONS: Final[List[str]] = [".jpg", ".jpeg", ".png"]
 
 
 def ajout_retour_ligne(text, max_length, font, draw):
@@ -26,23 +41,23 @@ def get_root_path() -> Path:
     return Path(__file__).parent.parent.parent
 
 
-def get_image_from_pdf_document(pdf_document: fitz.Document, image_quality_in_dpi: int = 350) -> Image:
-    r"""Retourne le fichier PDF chargé accessible en tant que document `pdf_document` au format Image
+def get_image_from_pdf_document(input_pdf_document: fitz.Document, image_quality_in_dpi: int = 350) -> Image:
+    r"""Exporte le fichier PDF `input_pdf_document` accessible en tant que document PDF vers une Image
     avec une qualité de `image_quality_in_dpi` dpi.
 
     Parameters
     ----------
-    pdf_document : fitz.Document
+    input_pdf_document : fitz.Document
         le document PDF à ouvrir et à transformer en image.
     image_quality_in_dpi: int, default=350
-        la qualité en dpi (dot per inch) de l'image à générer à partir du fichier PDF `pdf_document`.
+        la qualité en dpi (dot per inch) de l'image à générer à partir du fichier PDF `input_pdf_document`.
 
     Returns
     -------
     Image
-        l'image du fichier PDF `pdf_document` avec la qualité `image_quality_in_dpi` indiquée.
+        l'image du fichier PDF `input_pdf_document` avec la qualité `image_quality_in_dpi` indiquée.
     """
-    lPage = pdf_document.load_page(0)
+    lPage = input_pdf_document.load_page(0)
     lPixelMap = lPage.get_pixmap(dpi=image_quality_in_dpi)
     lImage = Image.frombytes(
         "RGB",
@@ -52,25 +67,99 @@ def get_image_from_pdf_document(pdf_document: fitz.Document, image_quality_in_dp
     return lImage
 
 
-def convert_to_png(path_document_input: str,
-                   path_document_output: str) -> None:
-    """
-    Export input document to png and save to path_document_output.
-    In case of a pdf document with several pages, only the first one is exported.
+def get_and_save_image_from_document(
+    input_document_path: str,
+    output_image_path: str,
+    output_image_format: str = "PNG",
+    output_image_quality_in_dpi: int = 350
+) -> Image:
+    r"""Exporte le document en entrée appelé `input_document_path` vers une image au format `output_image_format`,
+    la sauvegarde dans un fichier appelé `output_image_path` et en retourne le contenu.
+    S'il s'agit d'un document PDF de plusieurs pages, seule la première page est exportée.
 
-    :param path_document_input: path of the document to export to png, extension can be pdf or a valid image extension
-    :param path_document_output: path to save the exported document, extension must be .png
+    Parameters
+    ----------
+    input_document_path : str
+        le chemin du document à exporter en tant qu'image, son extension peut être ".pdf" ou une extension d'image valide.
+    output_image_path : str
+        le chemin de l'image en sortie résultant de la conversion du document en entrée.
+    output_image_format : str, default="PNG"
+        le format de l'image en sortie.
+    output_image_quality_in_dpi: int, default=350
+        la qualité en dpi (dot per inch) de l'image à générer à partir du fichier `input_document_path`.
+
+    Returns
+    -------
+    Image
+        l'image `output_image_path` du fichier `input_document_path` au format `output_image_format` et avec
+        la qualité `output_image_quality_in_dpi` indiquée.
     """
-    assert os.path.splitext(path_document_output)[1] == ".png", \
-        f"Output path must have extension .png but path_document_output is {path_document_output}"
-    extension_input: str = os.path.splitext(path_document_input)[1]
-    if extension_input == ".pdf":
-        doc = fitz.open(path_document_input)
-        image = get_image_from_pdf_document(pdf_document=doc, image_quality_in_dpi=350)
-        image.save(fp=path_document_output, format="PNG")
+    # extension de l'image en sortie, obtenue à partir du chemin de l'image en sortie
+    output_image_extension_str = os.path.splitext(output_image_path)[1]
+    # vérifie que l'extension de l'image en sortie est bien l'une des extensions acceptées
+    assert output_image_extension_str.lower() in VALID_OUTPUT_IMAGE_EXTENSIONS, \
+        f"Output path must have one of these extensions: {VALID_OUTPUT_IMAGE_EXTENSIONS}, but the output path ends with {output_image_extension_str}"
+    # extension du document en entrée, obtenue à partir du chemin du document en entrée
+    input_document_extension_str: str = os.path.splitext(input_document_path)[1]
+    # si le fichier téléversé est un document PDF,
+    if input_document_extension_str.lower() == ".pdf":
+        lPdfDocument = fitz.open(input_document_path)
+        # le transforme en image
+        image = get_image_from_pdf_document(input_pdf_document=lPdfDocument, image_quality_in_dpi=output_image_quality_in_dpi)
+    # si le fichier téléversé est une image,
     else:
-        with PIL.Image.open(path_document_input) as image_input:
-            image_input.save(fp=path_document_output, format="PNG")
+        # en charge le contenu
+        image = Image.open(input_document_path)
+    # sauvegarde l'image obtenue dans le format passé en paramètre
+    image.save(fp=output_image_path, format=output_image_format)
+    return image
+
+
+def get_and_save_image_and_path_from_document(
+    input_document_path: str,
+    output_image_format: str = "PNG",
+    output_image_quality_in_dpi: int = 350
+) -> Tuple[Image, str]:
+    r"""Exporte le document (PDF ou image) appelé `input_document_path` en tant qu'image de format `output_image_format`,
+    la sauvegarde dans un fichier, et retourne le contenu de l'image ainsi exportée et son chemin.
+    S'il s'agit d'un document PDF de plusieurs pages, seule la première page est exportée.
+
+    Parameters
+    ----------
+    input_document_path : str
+        le chemin du document à exporter en tant qu'image, son extension peut être ".pdf" ou une extension d'image valide.
+    output_image_format : str, default="PNG"
+        le format de l'image en sortie.
+    output_image_quality_in_dpi: int, default=350
+        la qualité en dpi (dot per inch) de l'image à générer à partir du fichier `input_document_path`.
+
+    Returns
+    -------
+    - Image
+        l'image résultant de la conversion du fichier `input_document_path` en image au format `output_image_format` et
+        avec la qualité `output_image_quality_in_dpi` indiquée.
+    - str
+        le chemin de l'image exportée à partir du fichier `input_document_path`.
+    """
+    # l'extension du fichier en sortie est le format mis en minuscule
+    output_image_extension_str = f".{output_image_format.lower()}"
+    # si le format de sortie de l'image est JPEG,
+    if output_image_format == "JPEG":
+        # définit l'extension à .jpg
+        output_image_extension_str = ".jpg"
+    input_document_with_image_extension_str: str = \
+        f"{os.path.splitext(os.path.basename(input_document_path))[0]}.{output_image_extension_str}"
+    # chemin de l'image en sortie
+    output_image_path_str: str = f"{TEMPORARY_FILE_DIRECTORY_STR}/{TEMPORARY_FILE_PREFIX_STR}_{input_document_with_image_extension_str}"
+    logging.debug(f"Nom de l'image en sortie = {output_image_path_str}")
+    # image en sortie obtenue après conversion du document en entrée en image
+    output_image = get_and_save_image_from_document(
+        input_document_path=input_document_path,
+        output_image_path=output_image_path_str,
+        output_image_format=output_image_format,
+        output_image_quality_in_dpi=output_image_quality_in_dpi
+    )
+    return output_image, output_image_path_str
 
 
 def get_concat_h(im1, im2):

@@ -1,6 +1,3 @@
-from PIL import Image
-# importe le module de PyMuPDF permettant d'afficher et de manipuler par divers outils des documents PDF via Python
-import fitz
 # importe le module de génération de fichiers et de répertoires temporaires, dont des fichiers temporaires nommés
 #from tempfile import NamedTemporaryFile
 # importe le module de traitement scientifique, dont les tableaux multi-dimensionnels
@@ -19,15 +16,15 @@ import streamlit as st
 # importe le module des classes représentant le système de fichiers avec la sémantique appropriée pour différents
 # systèmes d'exploitation (chemins orientés objet)
 from pathlib import Path
-# se positionne sur le chemin de travail courant
-cwd = Path().resolve()
 # importe le module des paramètres et fonctions systèmes
 import sys
+# se positionne sur le chemin de travail courant
+cwd = Path().resolve()
 # ajoute le chemin de travail courant à la variable concaténant les répertoires système afin de permettre l'import
 # de modules présents dans les sous-répertoires dudit répertoire
 sys.path.append(str(cwd))
-# importe le module de fonctions utiles
-import src.util.utils as utilfunc
+# importe le module de constantes et fonctions utiles
+import src.util.utils as utils
 # importe le module de PaddleOCR permettant l'extraction d'informations et la classification d'un fichier PDF selon
 # l'un des modèles connus
 import src.models.classify_form.PaddleOCR_TextMatch.classify as ocrExtractor
@@ -57,23 +54,32 @@ data_load_state.text("")
 st.title("Analyse automatique de formulaires CERFA")
 st.subheader("Téléversement d'un formulaire au format JPG ou PDF pour analyse")
 st.write("Actuellement, seuls sont traités les CERFA 12485, 13479 et 14011.")
-uploadedFile = st.file_uploader("Téléversez votre fichier au format JPG ou PDF", type=["jpg", "pdf"])
+uploadedFile = st.file_uploader("Téléversez votre fichier au format JPG ou PDF", type=["jpg", "jpeg", "pdf"])
+# si un fichier correspondant aux extensions acceptées a été téléversé,
 if uploadedFile is not None:
-    uploadedFileWithoutExtensionPathStr, uploadedFileExtensionStr = os.path.splitext(uploadedFile.name)
-    if uploadedFileExtensionStr.lower() == ".pdf":
-        lPdfDocument = fitz.open(stream=uploadedFile.read(), filetype="pdf")
-        image = utilfunc.get_image_from_pdf_document(lPdfDocument)
-    elif uploadedFileExtensionStr.lower() == ".jpg":
-        image = Image.open(uploadedFile)
-    uploadedFileAsImageRelativePathStr = f"./{uploadedFileWithoutExtensionPathStr}.jpg"
-    image.save(fp=uploadedFileAsImageRelativePathStr, format="JPEG")
+    # chemin du fichier téléversé lorsque sauvegardé localement
+    uploadedFileRelativePathStr = f"{utils.TEMPORARY_FILE_DIRECTORY_STR}/{uploadedFile.name}"
+    # sauvegarde localement le contenu binaire (tableau d'octets) du fichier téléversé
+    with open(uploadedFileRelativePathStr, "wb") as savedUploadedFile:
+        savedUploadedFile.write(uploadedFile.read())
+    # extrait du nom dudit fichier :
+    # - son chemin et la racine de son nom, sans extension
+    # - son extension
+    #uploadedFileWithoutExtensionPathStr, uploadedFileExtensionStr = os.path.splitext(uploadedFile.name)
+    uploadedFileAsImage, uploadedFileAsImageRelativePathStr = utils.get_and_save_image_and_path_from_document(
+        input_document_path=uploadedFileRelativePathStr,
+        output_image_format="JPEG",
+        output_image_quality_in_dpi=350
+    )
 #    st.write(f"Document {uploadedFile.name} téléversé avec succès en tant que {uploadedFileAsImageRelativePathStr}")
     st.write(f"Document téléversé avec succès")
     st.subheader("Affichage du formulaire téléversé")
     # affiche l'image dans l'application
-    st.image(np.array(image))
+    st.image(np.array(uploadedFileAsImage))
+    # affiche un cercle de chargement durant le processus d'extraction du numéro CERFA
     with st.spinner(text="Extraction du numéro CERFA du document en cours..."):
         lBeforeProcessTime = time.time()
+        # extrait le numéro de formulaire CERFA des données lues par le modèle d'OCR PaddleOCR
         cerfaFormReferenceStr = ocrExtractor.get_reference(
             image_path=uploadedFileAsImageRelativePathStr,
             ocrModel=paddleOcrModel
@@ -81,6 +87,15 @@ if uploadedFile is not None:
         st.subheader("Numéro CERFA du formulaire téléversé")
         st.write(f"""Le **numéro CERFA** du document {uploadedFile.name} est le **{cerfaFormReferenceStr}**.
             Son extraction s'est déroulée en {round(time.time() - lBeforeProcessTime, 2)} secondes.""")
+    # affiche un cercle de chargement durant le processus de prétraitement du formulaire CERFA
+    with st.spinner(text="Prétraitement du document en cours..."):
+        lBeforeProcessTime = time.time()
+        st.subheader("Affichage du formulaire téléversé après prétraitement")
+        # affiche l'image dans l'application
+        st.image(np.array(uploadedFileAsImage))
+        st.write(f"""Le prétraitement du document {uploadedFile.name} s'est déroulé en
+            {round(time.time() - lBeforeProcessTime, 2)} secondes.""")
+    # affiche un cercle de chargement durant le processus d'analyse du formulaire CERFA
     with st.spinner(text="Analyse du document en cours..."):
         lBeforeProcessTime = time.time()
         # chemin relatif du modèle DonUT
@@ -91,6 +106,7 @@ if uploadedFile is not None:
 #            # chemin absolu du fichier téléversé, stocké temporairerement, de la forme /home/onyxia/work/formIAble/tmpXXXXX.jpg
 #            uploadedFileFullPathStr = withPathTemporaryUploadedFile.name
 #            fieldsNamesAndValuesStrs = dot.run_model_on_file(modelPathStr, uploadedFileFullPathStr)
+        # couples {nom du champ : valeur du champ} lus par le modèle d'OCR DonUT
         fieldsNamesAndValuesStrs = dot.run_model_on_file(modelPathStr, uploadedFileAsImageRelativePathStr)
         st.subheader("Résultat de l'analyse du formulaire téléversé")
         st.write(f"""L'analyse du document {uploadedFile.name} s'est déroulée en {round(time.time() - lBeforeProcessTime, 2)} secondes
@@ -98,7 +114,10 @@ if uploadedFile is not None:
         # affiche les couples clefs-valeurs reconnus par DonUT et triés alphabétiquement par clef
         for fieldNameStr, fieldValueStr in sorted(fieldsNamesAndValuesStrs.items()):
             st.write(f"* **{fieldNameStr}** : {fieldValueStr}")
-    # supprime l'image téléversée
+    # supprime l'image créée à partir du document téléversé
     os.remove(uploadedFileAsImageRelativePathStr)
+    # supprime le document téléversé si ce n'est pas l'image créée
+    if uploadedFileAsImageRelativePathStr != uploadedFileRelativePathStr:
+        os.remove(uploadedFileRelativePathStr)
 #else:
 #    st.write("Merci de téléverser une image au format JPG uniquement !")
