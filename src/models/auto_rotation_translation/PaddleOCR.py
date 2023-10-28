@@ -2,58 +2,81 @@ from typing import List, Tuple
 import paddleocr
 import cv2
 import logging
-import src.models.auto_rotation_translation.functions as functions
+# importe le module des classes représentant le système de fichiers avec la sémantique appropriée pour différents
+# systèmes d'exploitation (chemins orientés objet)
+from pathlib import Path
+# importe le module des paramètres et fonctions systèmes
+import sys
+# se positionne sur le chemin de travail courant
+cwd = Path().resolve()
+# ajoute le chemin de travail courant à la variable concaténant les répertoires système afin de permettre l'import
+# de modules présents dans les sous-répertoires dudit répertoire
+sys.path.append(str(cwd))
+import src.models.auto_rotation_translation.functions as ocrFunctions
 
 logging.basicConfig(level=logging.DEBUG)
 
 
-def auto_rotate_and_translate(path_image_input: str,
+def auto_rotate_and_translate(input_image_path: str,
                               ocr_model: paddleocr.PaddleOCR,
-                              path_image_output: str,
-                              path_image_reference: str,
-                              texts_image_reference: List[str],
+                              output_image_path: str,
+                              reference_image_path: str,
+                              reference_image_texts: List[str],
                               cls: bool):
     # Get boxes and size from reference image, to later perform match with input image
-    ocr_result_image_reference = ocr_model.ocr(img=path_image_reference, det=True, rec=True, cls=False)
-    all_boxes_image_reference: List[List[Tuple[int, int]]] = [box_and_text[0] for box_and_text
-                                                              in ocr_result_image_reference[0]]
-    all_texts_image_reference: List[str] = [box_and_text[1][0] for box_and_text in ocr_result_image_reference[0]]
-    del ocr_result_image_reference
-    logging.debug(f"All texts found in image {path_image_reference}: {all_texts_image_reference}")
-    boxes_image_reference: List[List[Tuple[int, int]]] = functions.find_matching_boxes(
-        boxes_image_input=all_boxes_image_reference,
-        texts_image_input=all_texts_image_reference,
-        texts_image_reference=texts_image_reference
+    reference_image_ocr_results = ocr_model.ocr(img=reference_image_path, det=True, rec=True, cls=False)
+    reference_image_allBoxes: List[List[Tuple[int, int]]] = \
+        [reference_image_ocr_result[0] for reference_image_ocr_result in reference_image_ocr_results]
+    reference_image_allTexts: List[str] = \
+        [reference_image_ocr_result[1][0] for reference_image_ocr_result in reference_image_ocr_results]
+    del reference_image_ocr_results
+    logging.debug(f"All texts found in image {reference_image_path}: {reference_image_allTexts}")
+    reference_image_boxes: List[List[Tuple[int, int]]] = ocrFunctions.find_matching_boxes(
+        input_image_text_boxes=reference_image_allBoxes,
+        input_image_text_elements=reference_image_allTexts,
+        reference_image_text_elements=reference_image_texts
     )
 
-    image_reference = cv2.imread(path_image_reference)
-    shape_image_reference: Tuple[int, int] = image_reference.shape
+    reference_image = cv2.imread(reference_image_path)
+    reference_image_shape: Tuple[int, int] = reference_image.shape
 
-    ocr_result_image_input = ocr_model.ocr(img=path_image_input, det=True, rec=True, cls=cls)
+    input_image_ocr_results = ocr_model.ocr(img=input_image_path, det=True, rec=True, cls=cls)
 
-    boxes_image_input: List[List[Tuple[int, int]]] = [box_and_text[0] for box_and_text in ocr_result_image_input[0]]
-    texts_image_input: List[str] = [box_and_text[1][0] for box_and_text in ocr_result_image_input[0]]
-    del ocr_result_image_input
+    input_image_boxes: List[List[Tuple[int, int]]] = \
+        [input_image_ocr_result[0] for input_image_ocr_result in input_image_ocr_results]
+    input_image_texts: List[str] = \
+        [input_image_ocr_result[1][0] for input_image_ocr_result in input_image_ocr_results]
+    del input_image_ocr_results
 
-    matching_boxes_image_input: List[List[Tuple[int, int]]] = functions.find_matching_boxes(boxes_image_input,
-                                                                                            texts_image_input,
-                                                                                            texts_image_reference)
+    input_image_matching_boxes: List[List[Tuple[int, int]]] = ocrFunctions.find_matching_boxes(
+        input_image_text_boxes=input_image_boxes,
+        input_image_text_elements=input_image_texts,
+        reference_image_text_elements=reference_image_texts
+    )
 
-    functions.affine_transform_from_boxes(path_image_input=path_image_input,
-                                          path_image_output=path_image_output,
-                                          boxes_image_input=matching_boxes_image_input,
-                                          boxes_image_reference=boxes_image_reference,
-                                          size_image_output=shape_image_reference)
+    ocrFunctions.get_transformationMatrix_and_save_image_after_affineTransformation_with_boxes(
+        input_image_path=input_image_path,
+        output_image_path=output_image_path,
+        input_image_boxes=input_image_matching_boxes,
+        reference_image_boxes=reference_image_boxes,
+        output_image_size=reference_image_shape
+    )
 
 
-ocrModel: paddleocr.PaddleOCR = paddleocr.PaddleOCR(use_angle_cls=True,
-                                                    lang='fr')
+ocrModel: paddleocr.PaddleOCR = paddleocr.PaddleOCR(
+    use_angle_cls=True,
+    lang='fr'
+)
 
-auto_rotate_and_translate(path_image_input="data/synthetic_forms/cerfa_12485_03_fake1.jpg",
-                          ocr_model=ocrModel,
-                          path_image_output="results/PaddleOCR/auto_rotation_translation/cerfa_12485_03_fake1.jpg",
-                          path_image_reference="data/empty_forms/non-editable/cerfa_12485_03.png",
-                          texts_image_reference=["cerfa",
-                                                 "S 3704b",
-                                                 "Déclaration signée le"],
-                          cls=True)
+auto_rotate_and_translate(
+    input_image_path="./data/synthetic_forms/cerfa_12485_03_fake1.jpg",
+    ocr_model=ocrModel,
+    output_image_path="./data/tmp/transformed_cerfa_12485_03_fake1.jpg",
+    reference_image_path="./data/empty_forms/non-editable/cerfa_12485_03.png",
+    reference_image_texts=[
+        "cerfa",
+        "S 3704b",
+        "Déclaration signée le"
+    ],
+    cls=True
+)

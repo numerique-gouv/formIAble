@@ -6,35 +6,40 @@ import cv2
 import logging
 
 
-def affine_transform_from_boxes(path_image_input: str,
-                                path_image_output: str,
-                                boxes_image_input: List[List[Tuple[int, int]]],
-                                boxes_image_reference: List[List[Tuple[int, int]]],
-                                size_image_output: Tuple[int, int]) -> np.ndarray:
+def get_transformationMatrix_and_save_image_after_affineTransformation_with_boxes(
+    input_image_path: str,
+    output_image_path: str,
+    input_image_boxes: List[List[Tuple[int, int]]],
+    reference_image_boxes: List[List[Tuple[int, int]]],
+    output_image_size: Tuple[int, int]
+) -> np.ndarray:
     """
-    Apply the affine transform that matches the centers of boxes_image_input and boxes_image_reference
+    Gets the transformation matrix and saves the image obtained after having applied the affine transformation that matches
+    the centers of input_image_boxes and reference_image_boxes.
 
-    :param path_image_input: path of the image to transform
-    :param path_image_output: path to save the transformed image
-    :param boxes_image_input: list of 3 boxes found in the image to transform used to compute affine transform
-    :param boxes_image_reference: list of 3 boxes found in the reference image used to compute affine transform
-    :param size_image_output: (height: int, width: int) of the image after transform
+    :param input_image_path: path of the image to transform.
+    :param output_image_path: path to use to save the transformed image.
+    :param input_image_boxes: list of 3 boxes found in the image to transform used to compute the affine transformation.
+    :param reference_image_boxes: list of 3 boxes found in the reference image used to compute the affine transformation.
+    :param output_image_size: size (height: int, width: int) of the image after transformation.
 
-    :returns: The transformation matrix
+    :returns: the transformation matrix.
     """
-    logging.debug(f"Apply affine transform on image {path_image_input} ...")
-    points_image_input: np.ndarray = np.array(boxes_image_input, dtype=np.float32).mean(axis=1)
-    assert points_image_input.shape == (3, 2)
-    points_image_reference: np.ndarray = np.array(boxes_image_reference, dtype=np.float32).mean(axis=1)
-    assert points_image_reference.shape == (3, 2)
+    logging.debug(f"Applying affine transformation on image {input_image_path}...")
+    input_image_points: np.ndarray = np.array(input_image_boxes, dtype=np.float32).mean(axis=1)
+    # il doit y avoir 3 points ayant 2 coordonnées correspondant aux centres des 3 boîtes
+    assert input_image_points.shape == (3, 2)
+    reference_image_points: np.ndarray = np.array(reference_image_boxes, dtype=np.float32).mean(axis=1)
+    # il doit y avoir 3 points ayant 2 coordonnées correspondant aux centres des 3 boîtes
+    assert reference_image_points.shape == (3, 2)
 
-    matrix_affine_transform = cv2.getAffineTransform(points_image_input, points_image_reference)
-    image_output = cv2.warpAffine(cv2.imread(path_image_input),
-                                  matrix_affine_transform,
-                                  dsize=(size_image_output[1], size_image_output[0]))
-    cv2.imwrite(filename=path_image_output, img=image_output)
-    logging.debug(f"Apply affine transform on image {path_image_input} [OK], wrote result to {path_image_output}")
-    return matrix_affine_transform
+    affine_transformation_matrix = cv2.getAffineTransform(input_image_points, reference_image_points)
+    output_image = cv2.warpAffine(cv2.imread(input_image_path),
+                                  affine_transformation_matrix,
+                                  dsize=(output_image_size[1], output_image_size[0]))
+    cv2.imwrite(filename=output_image_path, img=output_image)
+    logging.debug(f"Affine transformation applied [OK] on image {input_image_path}, wrote resulting image to {output_image_path}")
+    return affine_transformation_matrix
 
 
 def strip_accents(text):
@@ -51,36 +56,42 @@ def strip_accents(text):
     return str(text)
 
 
-def find_matching_boxes(boxes_image_input: List[List[Tuple[int, int]]],
-                        texts_image_input: List[str],
-                        texts_image_reference: List[str]) -> List[List[Tuple[int, int]]]:
+def find_matching_boxes(
+    input_image_text_boxes: List[List[Tuple[int, int]]],
+    input_image_text_elements: List[str],
+    reference_image_text_elements: List[str]
+) -> List[List[Tuple[int, int]]]:
     """
-    Return box coordinates of the nearest matches in texts_image_input for each text in texts_image_references
+    Return box coordinates of the nearest matches in input_image_text_elements for each text in reference_image_text_elements
 
-    :param boxes_image_input: the list of corners of each box found in image_input
-    :param texts_image_input: the list of extracted texts of each box in image_input
-    :param texts_image_reference: texts in image_reference to look for
+    :param input_image_text_boxes: the list of the corners of each box found in the input image
+    :param input_image_text_elements: the list of the extracted texts in each box found in the input image
+    :param reference_image_text_elements: text elements to look for in the reference image
 
-    :returns: the list of corners of each box whose text best matches the corresponding text in texts_image_reference
+    :returns: the list of corners of each box whose text best matches the corresponding text in reference_image_text_elements
     """
-    assert len(boxes_image_input) == len(texts_image_input)
-    matching_boxes_image_input: List[List[Tuple[int, int]]] = []
-    for text_image_reference in map(lambda s: strip_accents(s).strip(), texts_image_reference):
-        distance_best_match = np.Inf
-        index_best_match = 0
-        # logging.debug(f"Searching for text {text_image_reference}")
-        for index_image_input, text_image_input in enumerate(map(lambda s: strip_accents(s).strip(),
-                                                                 texts_image_input)):
-            assert isinstance(text_image_reference, str)
-            assert isinstance(text_image_input, str)
-            distance = Levenshtein.distance(text_image_reference,
-                                            text_image_input)
-            # logging.debug(f"Levenshtein distance between {text_image_reference} and {text_image_input} = {distance}")
-            if distance < distance_best_match:
-                distance_best_match = distance
-                index_best_match = index_image_input
-        logging.debug(f"Searching for text {text_image_reference} : best match found {texts_image_input[index_best_match]}")
-        matching_boxes_image_input.append(boxes_image_input[index_best_match])
+    assert len(input_image_text_boxes) == len(input_image_text_elements)
+    input_image_matching_boxes: List[List[Tuple[int, int]]] = []
+    for reference_image_text_str in map(lambda lString: strip_accents(lString).strip(), reference_image_text_elements):
+        best_match_distance = np.Inf
+        best_match_index = 0
+        # logging.debug(f"Searching for text {reference_image_texts}")
+        for input_image_text_index, input_image_text_str in enumerate(
+            map(
+                lambda lString: strip_accents(lString).strip(),
+                input_image_text_elements
+            )
+        ):
+            assert isinstance(reference_image_text_str, str)
+            assert isinstance(input_image_text_str, str)
+            distance = Levenshtein.distance(reference_image_text_str,
+                                            input_image_text_str)
+            # logging.debug(f"Levenshtein distance between {reference_image_text} and {input_image_text_str} = {distance}")
+            if distance < best_match_distance:
+                best_match_distance = distance
+                best_match_index = input_image_text_index
+        logging.debug(f"Searching for text {reference_image_text_str} : best match found = {input_image_text_elements[best_match_index]}")
+        input_image_matching_boxes.append(input_image_text_boxes[best_match_index])
 
-    assert len(matching_boxes_image_input) == len(texts_image_reference)
-    return matching_boxes_image_input
+    assert len(input_image_matching_boxes) == len(reference_image_text_elements)
+    return input_image_matching_boxes

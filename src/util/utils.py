@@ -1,4 +1,4 @@
-# importe le module permettant la compatibilité avec les conseils sur le typage (type hints)
+# importe des classes du module permettant la compatibilité avec les conseils sur le typage (type hints)
 from typing import Final, List, Tuple
 from pdf2image import convert_from_path
 # importe le module OS pour l'accès aux fonctions de gestion de fichiers et de chemins
@@ -49,7 +49,7 @@ def get_image_from_pdf_document(input_pdf_document: fitz.Document, image_quality
     ----------
     input_pdf_document : fitz.Document
         le document PDF à ouvrir et à transformer en image.
-    image_quality_in_dpi: int, default=350
+    image_quality_in_dpi : int, default=350
         la qualité en dpi (dot per inch) de l'image à générer à partir du fichier PDF `input_pdf_document`.
 
     Returns
@@ -85,7 +85,7 @@ def get_and_save_image_from_document(
         le chemin de l'image en sortie résultant de la conversion du document en entrée.
     output_image_format : str, default="PNG"
         le format de l'image en sortie.
-    output_image_quality_in_dpi: int, default=350
+    output_image_quality_in_dpi : int, default=350
         la qualité en dpi (dot per inch) de l'image à générer à partir du fichier `input_document_path`.
 
     Returns
@@ -130,7 +130,7 @@ def get_and_save_image_and_path_from_document(
         le chemin du document à exporter en tant qu'image, son extension peut être ".pdf" ou une extension d'image valide.
     output_image_format : str, default="PNG"
         le format de l'image en sortie.
-    output_image_quality_in_dpi: int, default=350
+    output_image_quality_in_dpi : int, default=350
         la qualité en dpi (dot per inch) de l'image à générer à partir du fichier `input_document_path`.
 
     Returns
@@ -142,11 +142,11 @@ def get_and_save_image_and_path_from_document(
         le chemin de l'image exportée à partir du fichier `input_document_path`.
     """
     # l'extension du fichier en sortie est le format mis en minuscule
-    output_image_extension_str = f".{output_image_format.lower()}"
+    output_image_extension_str = output_image_format.lower()
     # si le format de sortie de l'image est JPEG,
     if output_image_format == "JPEG":
-        # définit l'extension à .jpg
-        output_image_extension_str = ".jpg"
+        # définit l'extension à jpg
+        output_image_extension_str = "jpg"
     input_document_with_image_extension_str: str = \
         f"{os.path.splitext(os.path.basename(input_document_path))[0]}.{output_image_extension_str}"
     # chemin de l'image en sortie

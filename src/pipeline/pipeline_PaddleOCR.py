@@ -1,4 +1,5 @@
-from typing import List, Tuple, Dict, Optional
+# importe des classes du module permettant la compatibilité avec les conseils sur le typage (type hints)
+from typing import Dict, Final, List, Optional, Tuple
 import os.path
 import json
 import tempfile
@@ -6,148 +7,258 @@ import paddleocr
 import cv2
 import numpy as np
 import src.util.utils as utils
-import src.models.auto_rotation_translation.functions
-import src.models.classify_form.PaddleOCR_TextMatch.classify
+import src.models.auto_rotation_translation.functions as ocrFunctions
+import src.models.classify_form.PaddleOCR_TextMatch.classify as ocrExtractor
 import logging
 import pickle
 
 
-def extract_document(path_document_input: str,
-                     path_dir_configs: str,
-                     ocr_model: paddleocr.PaddleOCR,
-                     save_annotated_document: Optional[str] = None) -> Dict[str, str]:
+# --- Constantes ---#
+# -- Les constantes suivantes définissent des noms de champs dans le fichier de configuration JSON d'un formulaire CERFA. --#
+# nom du champ indiquant les couples "nom du champ à extraire : coordonnées de la boîte l'entourant"
+FORM_FIELDS_TO_EXTRACT_FIELD_NAME_STR: Final[str] = "fields_to_extract"
+# nom du champ listant les coordonnées (x, y) des boîtes entourant les 3 éléments de texte de référence
+# Dans le fichier de configuration, ce nom est donc suivi d'une liste de 3 listes (car 3 éléments de texte de référence) de
+# 4 listes (car 4 points définissent chaque boîte) de 2 nombres flottants (les coordonnées x et y de chaque point)
+FORM_REFERENCE_BOXES_FIELD_NAME_STR: Final[str] = "reference_boxes"
+# nom du champ indiquant la taille (hauteur et largeur sous forme de liste de 2 entiers) de l'image de référence du formulaire
+FORM_REFERENCE_SIZE_FIELD_NAME_STR: Final[str] = "reference_size"
+# nom du champ listant les 3 éléments de texte de référence à retrouver dans le formulaire
+FORM_REFERENCE_TEXTS_FIELD_NAME_STR: Final[str] = "reference_texts"
+
+
+def get_form_image_text_elements_and_boxes(
+    form_image_path_str: str,
+    ocr_model: paddleocr.PaddleOCR
+) -> Tuple[List[str], List[List[Tuple[int, int]]]]:
+    r"""Après OCRisation de l'image `form_image_path_str`, retourne :
+    - la liste des éléments de texte extraits,
+    - la liste des coordonnées des points définissant les boîtes entourant les éléments de texte extraits
+
+    Parameters
+    ----------
+    form_image_path_str : str
+        le chemin de l'image à analyser.
+    ocr_model : paddleocr.PaddleOCR
+        le modèle PaddleOCR à utiliser pour analyser l'image `form_image_path_str`.
+
+    Returns
+    -------
+    - list of str
+        la liste des éléments de texte extraits.
+    - list of lists of tuples of int and int
+        la liste des coordonnées des points définissant les boîtes entourant les éléments de texte extraits.
+    """
+    # résultats de l'OCRisation de l'image form_image_path_str permettant de récupérer les différents éléments de texte
+    # extraits ainsi que les coordonnées des boîtes entourant lesdits éléments de texte
+    input_image_ocr_results = ocr_model.ocr(img=form_image_path_str, det=True, rec=True, cls=True)
+    logging.debug("Nombre de résultats extraits par OCR =", len(input_image_ocr_results))
+    # liste des coordonnées des points définissant les boîtes entourant les éléments de texte extraits
+    input_document_text_boxes: List[List[Tuple[int, int]]] = [input_image_ocr_result[0] for input_image_ocr_result in input_image_ocr_results]
+    # boîtes entourant les éléments de texte extraits
+    for lTextBoxIdx, lTextBox in enumerate(input_document_text_boxes):
+        logging.debug(f"Boîte entourant un élément de texte extrait n° {lTextBoxIdx} = {lTextBox}")
+    # éléments de texte extraits avec score
+    for lTextElementAndScoreIdx, lTextElementAndScoreStr in enumerate([input_image_ocr_result[1] for input_image_ocr_result in input_image_ocr_results]):
+        logging.debug(f"Texte extrait et score n° {lTextElementAndScoreIdx} = {lTextElementAndScoreStr}")
+    # liste des éléments de texte extraits, sans le score
+    input_document_text_elements: List[str] = [input_image_ocr_result[1][0] for input_image_ocr_result in input_image_ocr_results]
+    del input_image_ocr_results
+    return input_document_text_elements, input_document_text_boxes
+
+
+def get_transformationMatrix_and_save_image_after_affineTransformation(
+    input_document_path_str: str,
+    form_image_path_str: str,
+    form_number_str: str,
+    input_document_text_elements: List[str],
+    input_document_text_boxes: List[List[Tuple[int, int]]],
+    configuration_files_dir_path_str: str
+) -> Tuple[str, np.ndarray]:
+    r"""A partir de l'image `form_image_path` obtenue du document `input_document_path`, effectue les opérations suivantes :
+    - trouve les boîtes entourant les éléments de texte correspondant le mieux aux éléments de texte de l'image de référence
+    - applique ensuite une rotation à l'image, en sauvegarde le résultat dans un fichier différent pour éviter tout conflit
+      de nommage
+    - retourne enfin :
+      * le chemin de l'image ainsi obtenue,
+      * la matrice de transformation de l'image
+
+    Parameters
+    ----------
+    input_document_path_str : str
+        le chemin du document à analyser.
+    form_image_path_str : str
+        le chemin de l'image obtenue à partir du document à analyser.
+    form_number_str : str
+        le numéro CERFA du formulaire détecté dans l'image à analyser `form_image_path_str`.
+    input_document_text_elements : list of str
+        liste des éléments de texte extraits de l'OCRisation de l'image `form_image_path_str`
+    input_document_text_boxes : list of lists of tuples of int and int
+        liste des coordonnées des points définissant les boîtes entourant lesdits éléments de texte extraits de l'OCRisation
+        de l'image `form_image_path_str`
+    configuration_files_dir_path : str
+        chemin du répertoire des fichiers de configuration JSON des formulaires CERFA
+
+    Returns
+    -------
+    - str
+        le chemin de l'image transformée.
+    - numpy.ndarray
+        la matrice de transformation de l'image.
+    """
+    form_config_file_path: str = os.path.join(configuration_files_dir_path_str, f"cerfa_{form_number_str}.json")
+    assert os.path.isfile(
+        form_config_file_path
+    ), f"Extracted reference {form_number_str} from document {input_document_path_str}, " \
+       f"but it did not match any form configuration file {form_config_file_path} in directory {configuration_files_dir_path_str}"
+    form_config_file_dict: Dict = read_form_config_file(form_config_file_path=form_config_file_path)
+
+    # trouve les boîtes entourant les éléments de texte correspondant le mieux aux éléments de texte de
+    # l'image de référence du formulaire
+    input_document_matching_boxes = ocrFunctions.find_matching_boxes(
+        input_image_text_boxes=input_document_text_boxes,
+        input_image_text_elements=input_document_text_elements,
+        reference_image_text_elements=form_config_file_dict[FORM_REFERENCE_TEXTS_FIELD_NAME_STR]
+    )
+
+    form_image_withoutPrefix_path_str = \
+        form_image_path_str.removeprefix(f"{utils.TEMPORARY_FILE_DIRECTORY_STR}/{utils.TEMPORARY_FILE_PREFIX_STR}_")
+    transformed_image_path_str: str = f"{utils.TEMPORARY_FILE_DIRECTORY_STR}/auto_transformed_{form_image_withoutPrefix_path_str}"
+    # applique une rotation à l'image, en sauvegarde le résultat dans un fichier différent pour éviter
+    # tout conflit de nommage et retourne la matrice de transformation de l'image
+    transformation_matrix: np.ndarray = ocrFunctions.get_transformationMatrix_and_save_image_after_affineTransformation_with_boxes(
+        input_image_path=form_image_path_str,
+        output_image_path=transformed_image_path_str,
+        input_image_boxes=input_document_matching_boxes,
+        reference_image_boxes=form_config_file_dict[FORM_REFERENCE_BOXES_FIELD_NAME_STR],
+        output_image_size=form_config_file_dict[FORM_REFERENCE_SIZE_FIELD_NAME_STR]
+    )
+    return transformed_image_path_str, transformation_matrix
+
+
+def extract_document(
+    input_document_path: str,
+    configuration_files_dir_path: str,
+    ocr_model: paddleocr.PaddleOCR,
+    save_annotated_document: Optional[str] = None
+) -> Dict[str, str]:
     """Extract key-value info from a document
     The cerfa number is ocr-ised, then the corresponding configuration file cerfa_*****_**.json
     is searched for in path_dir_configs.
-    If save_annotated_document is set,
-    input document is saved after auto-transformation, along with reference boxes and extracted boxes.
+    If save_annotated_document is set, input document is saved after auto-transformation,
+    along with reference boxes and extracted boxes [not implemented yet].
     """
-    # export to PNG image to facilitate subsequent operations
-    resulting_image, png_document_path_str = utils.get_and_save_image_and_path_from_document(
-        input_document_path=path_document_input,
+    # exporte le document en entrée vers une image au format PNG afin de faciliter les opérations suivantes
+    png_document_image, png_document_path_str = utils.get_and_save_image_and_path_from_document(
+        input_document_path=input_document_path,
         output_image_format="PNG",
         output_image_quality_in_dpi=350
     )
 
-    # ocr input document to get texts and box corners
-    ocr_result_image_input = ocr_model.ocr(img=png_document_path_str, det=True, rec=True, cls=True)
-    logging.debug("Nombre de résultats extraits par OCR =", len(ocr_result_image_input))
-    # liste des boîtes de contour des textes extraits
-    boxes_document_input: List[List[Tuple[int, int]]] = [box_and_text[0] for box_and_text in ocr_result_image_input]
-    # boîtes de contour des textes extraits
-    for lBoxIdx, lBox in enumerate(boxes_document_input):
-        logging.debug(f"Boîte n° {lBoxIdx} = {lBox}")
-    # textes extraits avec score
-    for lTextAndScoreIdx, lTextAndScoreStr in enumerate([box_and_text[1] for box_and_text in ocr_result_image_input]):
-        logging.debug(f"Texte et score n° {lTextAndScoreIdx} = {lTextAndScoreStr}")
-    # liste des textes extraits
-    texts_document_input: List[str] = [box_and_text[1][0] for box_and_text in ocr_result_image_input]
+    # liste des éléments de texte extraits et des coordonnées des points définissant les boîtes entourant lesdits éléments
+    # de texte extraits de l'OCRisation de l'image png_document_path_str
+    input_document_text_elements, input_document_text_boxes = \
+        get_form_image_text_elements_and_boxes(png_document_path_str, ocr_model)
 
-    # automatically extract reference to find reference config
-    reference: str = src.models.classify_form.PaddleOCR_TextMatch.classify.get_reference_from_texts(
-        image_path=path_document_input,
-        texts=texts_document_input
-    )
-    logging.debug(f"path_document_input = {path_document_input}, extracted reference {reference}")
-    path_config_reference: str = os.path.join(path_dir_configs, f"cerfa_{reference}.json")
-    assert os.path.isfile(
-        path_config_reference
-    ), f"Extracted reference {reference} from document {path_document_input}, " \
-       f"did not found config file {path_config_reference} in directory {path_dir_configs}"
-    config_reference: Dict = read_config_reference(path_config_reference=path_config_reference)
-
-    # find matching boxes to perform auto-transformation
-    matching_boxes_document_input = src.models.auto_rotation_translation.functions.find_matching_boxes(
-        boxes_image_input=boxes_document_input,
-        texts_image_input=texts_document_input,
-        texts_image_reference=config_reference["texts_reference"]
+    # extrait le numéro CERFA du formulaire afin de trouver le fichier de configuration dudit formulaire, définissant
+    # les champs, leurs positions, les éléments de texte de référence et la taille de l'image de référence associée
+    form_number_str: str = ocrExtractor.get_form_number_in_text_elements(
+        input_document_path=input_document_path,
+        text_elements=input_document_text_elements
     )
 
-    # Auto rotate and save to another file to avoid file conflicts
-    png_document_without_prefix_path_str = \
-        png_document_path_str.removeprefix(f"{utils.TEMPORARY_FILE_DIRECTORY_STR}/{utils.TEMPORARY_FILE_PREFIX_STR}_")
-    path_image_auto_transformed: str = f"{utils.TEMPORARY_FILE_DIRECTORY_STR}/auto_transformed_{png_document_without_prefix_path_str}"
-    matrix_transformation: np.ndarray = src.models.auto_rotation_translation.functions.affine_transform_from_boxes(
-        path_image_input=png_document_path_str,
-        path_image_output=path_image_auto_transformed,
-        boxes_image_input=matching_boxes_document_input,
-        boxes_image_reference=config_reference["boxes_reference"],
-        size_image_output=config_reference["size_reference"]
+    # - trouve les boîtes entourant les éléments de texte correspondant le mieux aux éléments de texte de
+    #   l'image de référence du formulaire
+    # - applique une rotation à l'image, en sauvegarde le résultat dans un fichier différent pour éviter
+    #   tout conflit de nommage et retourne l'image obtenue et la matrice de transformation de ladite image
+    transformed_image_path_str, transformation_matrix = get_transformationMatrix_and_save_image_after_affineTransformation(
+        input_document_path_str=input_document_path,
+        form_image_path_str=png_document_path_str,
+        form_number_str=form_number_str,
+        input_document_text_elements=input_document_text_elements,
+        input_document_text_boxes=input_document_text_boxes,
+        configuration_files_dir_path_str=configuration_files_dir_path
     )
 
-    pickle.dump(matrix_transformation, open(f"{utils.TEMPORARY_FILE_DIRECTORY_STR}/dump_matrix_transformation", "wb"))
+    pickle.dump(transformation_matrix, open(f"{utils.TEMPORARY_FILE_DIRECTORY_STR}/transformation_matrix.dump", "wb"))
 
-    # Apply transformation to each input box to compare with reference boxes
-    boxes_input_after_transform: List[List[np.ndarray]] = []
-    for box_document_input in boxes_document_input:
-        boxes_input_after_transform.append([])
-        for corner in box_document_input:
-            corner_transformed: np.ndarray = matrix_transformation.dot(np.array([corner[0], corner[1], 1]))
-            boxes_input_after_transform[-1].append(corner_transformed)
+    # apply transformation to each input box to compare with reference boxes
+    transformed_input_boxes: List[List[np.ndarray]] = []
+    for input_document_text_box in input_document_text_boxes:
+        transformed_input_boxes.append([])
+        for corner in input_document_text_box:
+            transformed_corner: np.ndarray = transformation_matrix.dot(np.array([corner[0], corner[1], 1]))
+            transformed_input_boxes[-1].append(transformed_corner)
 
-    for box_after_transform, text in zip(boxes_input_after_transform, texts_document_input):
-        logging.debug(f"{text} ----- {box_after_transform}")
+    for transformed_box, text_element_str in zip(transformed_input_boxes, input_document_text_elements):
+        logging.debug(f"{text_element_str} ----- {transformed_box}")
 
     os.remove(png_document_path_str)
-    os.remove(path_image_auto_transformed)
+    os.remove(transformed_image_path_str)
 #    raise NotImplementedError
 
 
-def register_document(path_document_to_register: str,
-                      path_dir_reference_documents: str,
-                      texts_reference: List[str],
-                      ocr_model: paddleocr.PaddleOCR) -> None:
+def register_document_as_reference(
+    document_to_register_path: str,
+    reference_documents_dir_path: str,
+    document_to_register_reference_texts: List[str],
+    ocr_model: paddleocr.PaddleOCR
+) -> None:
     """Registers a document.
     The fields to extract are supposed to be in a configuration file named
-    cerfa_*****_**.json in the directory path_dir_reference_documents, where
+    cerfa_*****_**.json in the directory reference_documents_dir_path, where
     the document is supposed to be named cerfa_*****_**
     (see src.util.utils.get_and_save_image_from_document for accepted extensions).
-    The document is exported to png and saved in path_dir_reference_documents
-    Text elements of texts_reference are detected in the document and added
+    The document is exported to png and saved in reference_documents_dir_path
+    Text elements of document_to_register_reference_texts are detected in the document and added
     in the configuration file cerfa_*****_**.json.
     """
-    name_document_to_register: str = os.path.splitext(os.path.basename(path_document_to_register))[0]
-    assert f"{name_document_to_register}.json" in os.listdir(path_dir_reference_documents), \
-        f"Config file {name_document_to_register}.json not found in {path_dir_reference_documents}"
+    document_to_register_withoutExtension_basename_str: str = \
+        os.path.splitext(os.path.basename(document_to_register_path))[0]
+    assert f"{document_to_register_withoutExtension_basename_str}.json" in os.listdir(reference_documents_dir_path), \
+        f"Config file {document_to_register_withoutExtension_basename_str}.json not found in {reference_documents_dir_path}"
 
-    path_config: str = os.path.join(path_dir_reference_documents, f"{name_document_to_register}.json")
-    path_image_reference: str = os.path.join(path_dir_reference_documents, f"{name_document_to_register}.png")
+    reference_config_file_path_str: str = \
+        os.path.join(reference_documents_dir_path, f"{document_to_register_withoutExtension_basename_str}.json")
+    reference_image_path_str: str = \
+        os.path.join(reference_documents_dir_path, f"{document_to_register_withoutExtension_basename_str}.png")
     utils.get_and_save_image_from_document(
-        input_document_path=path_document_to_register,
-        output_image_path=path_image_reference,
+        input_document_path=document_to_register_path,
+        output_image_path=reference_image_path_str,
         output_image_format="PNG",
         output_image_quality_in_dpi=350
     )
 
     # Get boxes and size from reference image, to later perform match with input image
-    ocr_result_image_reference = ocr_model.ocr(img=path_image_reference, det=True, rec=True, cls=False)
-    all_boxes_image_reference: List[List[Tuple[int, int]]] = [box_and_text[0] for box_and_text
-                                                              in ocr_result_image_reference[0]]
-    all_texts_image_reference: List[str] = [box_and_text[1][0] for box_and_text in ocr_result_image_reference[0]]
-    del ocr_result_image_reference
-    logging.debug(f"All texts found in image {path_image_reference}: {all_texts_image_reference}")
-    boxes_reference: List[List[Tuple[int, int]]] = src.models.auto_rotation_translation.functions.find_matching_boxes(
-        boxes_image_input=all_boxes_image_reference,
-        texts_image_input=all_texts_image_reference,
-        texts_image_reference=texts_reference
+    reference_image_ocr_results = ocr_model.ocr(img=reference_image_path_str, det=True, rec=True, cls=False)
+    reference_image_allBoxes: List[List[Tuple[int, int]]] = \
+        [reference_image_ocr_result[0] for reference_image_ocr_result in reference_image_ocr_results]
+    reference_image_allTexts: List[str] = \
+        [reference_image_ocr_result[1][0] for reference_image_ocr_result in reference_image_ocr_results]
+    del reference_image_ocr_results
+    logging.debug(f"All texts found in image {reference_image_path_str}: {reference_image_allTexts}")
+    reference_image_boxes: List[List[Tuple[int, int]]] = ocrFunctions.find_matching_boxes(
+        input_image_text_boxes=reference_image_allBoxes,
+        input_image_text_elements=reference_image_allTexts,
+        reference_image_text_elements=document_to_register_reference_texts
     )
 
-    size_image_reference = cv2.imread(path_image_reference).shape[:2]  # height, width of image
+    reference_image_size = cv2.imread(reference_image_path_str).shape[:2]  # height, width of image
 
-    with open(path_config, "r") as config_file:
-        config_content = json.load(config_file)
+    with open(reference_config_file_path_str, "r") as reference_config_file:
+        reference_config_file_dict = json.load(reference_config_file)
 
-    config_content["texts_reference"] = texts_reference
-    config_content["boxes_reference"] = boxes_reference
-    config_content["size_reference"] = size_image_reference
+    reference_config_file_dict[FORM_REFERENCE_TEXTS_FIELD_NAME_STR] = document_to_register_reference_texts
+    reference_config_file_dict[FORM_REFERENCE_BOXES_FIELD_NAME_STR] = reference_image_boxes
+    reference_config_file_dict[FORM_REFERENCE_SIZE_FIELD_NAME_STR] = reference_image_size
 
     try:
-        with tempfile.NamedTemporaryFile(mode="w", delete=False) as config_file_temp:
-            json.dump(config_content, config_file_temp)
-        os.remove(path_config)
-        os.rename(config_file_temp.name, path_config)
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp_reference_config_file:
+            json.dump(reference_config_file_dict, temp_reference_config_file)
+        os.remove(reference_config_file_path_str)
+        os.rename(temp_reference_config_file.name, reference_config_file_path_str)
     except Exception:
-        os.remove(config_file_temp.name)
+        os.remove(temp_reference_config_file.name)
         raise
 
 
@@ -157,33 +268,39 @@ def reshape_corners_positions(x0, y0, width, height) -> List[Tuple[int, int]]:
     return [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
 
 
-def read_config_reference(path_config_reference: str) -> Dict:
-    """Read config file
+def read_form_config_file(form_config_file_path: str) -> Dict:
+    """Reads form configuration file.
 
     Assumed structure of input config file is:
     fields_to_extract:
-        field_name_1: positions (list of 4 float or list of lists of 4 float, corresponding to x0, y0, width, height)
+        field_name_1: positions, i.e. list of 4 floats or list of lists of 4 floats, corresponding to x0, y0, width, height.
         field_name_2: same
         ...
-    texts_reference: list of 3 strings
-    boxes_reference: list of boxes (list of 3 lists of 4 lists of 2 float, describing the x, y coordinates of each corner)
-    size_reference: list of 2 float (height, width of reference image)
+    reference_texts: list of 3 strings
+    reference_boxes: list of boxes, i.e. list of 3 lists of 4 lists of 2 float, describing the x, y coordinates of each corner.
+    reference_size: list of 2 floats, i.e. height and width of the reference image
     """
-    with open(path_config_reference, "r") as config_file_reference:
-        config_reference = json.load(config_file_reference)
+    with open(form_config_file_path, "r") as form_json_config_file:
+        form_config_file_dict = json.load(form_json_config_file)
 
-    result: Dict = {"texts_reference": config_reference["texts_reference"],
-                    "fields_to_extract": {},
-                    "boxes_reference": []}
-    for field_name, field_positions in config_reference["fields_to_extract"].items():
+    resulting_form_config_file_dict: Dict = {
+        FORM_REFERENCE_TEXTS_FIELD_NAME_STR: form_config_file_dict[FORM_REFERENCE_TEXTS_FIELD_NAME_STR],
+        FORM_FIELDS_TO_EXTRACT_FIELD_NAME_STR: {},
+        FORM_REFERENCE_BOXES_FIELD_NAME_STR: []
+    }
+    for field_name, field_positions in form_config_file_dict[FORM_FIELDS_TO_EXTRACT_FIELD_NAME_STR].items():
         if isinstance(field_positions[0], float) or isinstance(field_positions[0], int):
-            result["fields_to_extract"][field_name] = reshape_corners_positions(*field_positions)
+            resulting_form_config_file_dict[FORM_FIELDS_TO_EXTRACT_FIELD_NAME_STR][field_name] = \
+                reshape_corners_positions(*field_positions)
         elif isinstance(field_positions[0], list):
-            result["fields_to_extract"][field_name] = [
+            resulting_form_config_file_dict[FORM_FIELDS_TO_EXTRACT_FIELD_NAME_STR][field_name] = [
                 reshape_corners_positions(*box_positions) for box_positions in field_positions
             ]
-    result["boxes_reference"] = [[(int(corner[0]), int(corner[1])) for corner in corners]
-                                 for corners in config_reference["boxes_reference"]]
-    height_reference, width_reference = config_reference["size_reference"]
-    result["size_reference"] = (int(height_reference), int(width_reference))
-    return result
+    resulting_form_config_file_dict[FORM_REFERENCE_BOXES_FIELD_NAME_STR] = [
+        [(int(corner[0]), int(corner[1])) for corner in corners]
+            for corners in form_config_file_dict[FORM_REFERENCE_BOXES_FIELD_NAME_STR]
+    ]
+    reference_height, reference_width = form_config_file_dict[FORM_REFERENCE_SIZE_FIELD_NAME_STR]
+    resulting_form_config_file_dict[FORM_REFERENCE_SIZE_FIELD_NAME_STR] = \
+        (int(reference_height), int(reference_width))
+    return resulting_form_config_file_dict
