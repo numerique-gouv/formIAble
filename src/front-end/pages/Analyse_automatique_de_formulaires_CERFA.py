@@ -57,7 +57,7 @@ data_load_state.text("")
 
 st.title("Analyse automatique de formulaires CERFA")
 st.subheader("Téléversement d'un formulaire au format JPG, PNG ou PDF pour analyse")
-st.write("Actuellement, seuls sont traités les CERFA 12485, 13479 et 14011.")
+st.write("Actuellement, seuls sont traités les CERFA 12485\*03, 13749\*05 et 14011\*03.")
 uploadedFile = st.file_uploader("Téléversez votre fichier au format JPG, PNG ou PDF", type=["jpg", "jpeg", "png", "pdf"])
 # si un fichier correspondant aux extensions acceptées a été téléversé,
 if uploadedFile is not None:
@@ -99,24 +99,31 @@ if uploadedFile is not None:
     # affiche un cercle de chargement durant le processus de prétraitement du formulaire CERFA
     with st.spinner(text="Prétraitement du document en cours..."):
         lBeforeProcessTime = time.time()
-        # - trouve les boîtes entourant les éléments de texte correspondant le mieux aux éléments de texte de
-        #   l'image de référence du formulaire
-        # - applique une rotation à l'image, en sauvegarde le résultat dans un fichier différent pour éviter
-        #   tout conflit de nommage et retourne l'image obtenue et la matrice de transformation de ladite image
-        lTransformedImagePathStr, lTransformationMatrix = ocrPipeline.get_transformationMatrix_and_save_image_after_affineTransformation(
-            input_document_path_str=uploadedFile.name,
-            form_image_path_str=uploadedFileAsImageRelativePathStr,
-            form_number_str=cerfaFormNumberStr,
-            input_document_text_elements=lInputDocumentTextElements,
-            input_document_text_boxes=lInputDocumentTextBoxes,
-            configuration_files_dir_path_str="./data/configs_extraction",
-        )
-        st.subheader("Affichage du formulaire téléversé après prétraitement")
-        lTransformedImage = Image.open(lTransformedImagePathStr)
-        # affiche l'image dans l'application
-        st.image(np.array(lTransformedImage))
-        st.write(f"""Le prétraitement du document {uploadedFile.name} s'est déroulé en
-            {round(time.time() - lBeforeProcessTime, 2)} secondes.""")
+        try:
+            # - trouve les boîtes entourant les éléments de texte correspondant le mieux aux éléments de texte de
+            #   l'image de référence du formulaire
+            # - applique une rotation à l'image, en sauvegarde le résultat dans un fichier différent pour éviter
+            #   tout conflit de nommage et retourne l'image obtenue et la matrice de transformation de ladite image
+            lTransformedImageRelativePathStr, lTransformationMatrix = ocrPipeline.get_transformationMatrix_and_save_image_after_affineTransformation(
+                input_document_path_str=uploadedFile.name,
+                form_image_path_str=uploadedFileAsImageRelativePathStr,
+                form_number_str=cerfaFormNumberStr,
+                input_document_text_elements=lInputDocumentTextElements,
+                input_document_text_boxes=lInputDocumentTextBoxes,
+                configuration_files_dir_path_str="./data/configs_extraction",
+            )
+        except AssertionError as lAssertionError:
+            st.write(f"""Le prétraitement du document {uploadedFile.name} n'est pas possible :
+                **aucun fichier de configuration correspondant** n'existe pour ce formulaire.""")
+#            st.write(f"{lAssertionError}")
+            lTransformedImageRelativePathStr = uploadedFileAsImageRelativePathStr
+        else:
+            st.subheader("Affichage du formulaire téléversé après prétraitement")
+            lTransformedImage = Image.open(lTransformedImageRelativePathStr)
+            # affiche l'image dans l'application
+            st.image(np.array(lTransformedImage))
+            st.write(f"""Le prétraitement du document {uploadedFile.name} s'est déroulé en
+                {round(time.time() - lBeforeProcessTime, 2)} secondes.""")
     # affiche un cercle de chargement durant le processus d'analyse du formulaire CERFA
     with st.spinner(text="Analyse du document en cours..."):
         lBeforeProcessTime = time.time()
@@ -129,7 +136,7 @@ if uploadedFile is not None:
 #            uploadedFileFullPathStr = withPathTemporaryUploadedFile.name
 #            fieldsNamesAndValuesStrs = dot.run_model_on_file(modelPathStr, uploadedFileFullPathStr)
         # couples {nom du champ : valeur du champ} lus par le modèle d'OCR DonUT
-        fieldsNamesAndValuesStrs = dot.run_model_on_file(modelPathStr, lTransformedImagePathStr)
+        fieldsNamesAndValuesStrs = dot.run_model_on_file(modelPathStr, lTransformedImageRelativePathStr)
         st.subheader("Résultat de l'analyse du formulaire téléversé")
         st.write(f"""L'analyse du document {uploadedFile.name} s'est déroulée en {round(time.time() - lBeforeProcessTime, 2)} secondes
             et a pu extraire **{len(fieldsNamesAndValuesStrs)}** couples \"**nom du champ** : valeur du champ\" :""")
@@ -137,11 +144,12 @@ if uploadedFile is not None:
         for fieldNameStr, fieldValueStr in sorted(fieldsNamesAndValuesStrs.items()):
             st.write(f"* **{fieldNameStr}** : {fieldValueStr}")
     # supprime l'image transformée obtenue après prétraitement de l'image créée à partir du document téléversé
-    os.remove(lTransformedImagePathStr)
+    if lTransformedImageRelativePathStr not in [uploadedFileRelativePathStr, uploadedFileAsImageRelativePathStr]:
+        os.remove(lTransformedImageRelativePathStr)
     # supprime l'image créée à partir du document téléversé
     os.remove(uploadedFileAsImageRelativePathStr)
     # supprime le document téléversé si ce n'est pas l'image créée
-    if uploadedFileAsImageRelativePathStr != uploadedFileRelativePathStr:
+    if uploadedFileRelativePathStr not in [uploadedFileAsImageRelativePathStr, lTransformedImageRelativePathStr]:
         os.remove(uploadedFileRelativePathStr)
 #else:
 #    st.write("Merci de téléverser une image au format JPG uniquement !")

@@ -109,8 +109,8 @@ def get_transformationMatrix_and_save_image_after_affineTransformation(
     form_config_file_path: str = os.path.join(configuration_files_dir_path_str, f"cerfa_{form_number_str}.json")
     assert os.path.isfile(
         form_config_file_path
-    ), f"Extracted reference {form_number_str} from document {input_document_path_str}, " \
-       f"but it did not match any form configuration file {form_config_file_path} in directory {configuration_files_dir_path_str}"
+    ), f"Le numéro CERFA {form_number_str} a été extrait du document {input_document_path_str}, " \
+       f"mais **aucun fichier de configuration correspondant** {form_config_file_path} n'existe dans le répertoire {configuration_files_dir_path_str}."
     form_config_file_dict: Dict = read_form_config_file(form_config_file_path=form_config_file_path)
 
     # trouve les boîtes entourant les éléments de texte correspondant le mieux aux éléments de texte de
