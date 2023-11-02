@@ -16,7 +16,7 @@ from faker_vehicle import VehicleProvider
 from fitz import fitz
 from jsonlines import jsonlines
 
-from util.utils import pdf_to_image
+from src.util.utils import pdf_to_image
 
 locales = OrderedDict([
     ('fr-FR', 1)])
@@ -376,12 +376,16 @@ class Writer:
                 # Proba to press button = 1 / nb_boutons
                 chance_of_getting_true = 1 / self.radio_buttons_group_len[_field.field_name] * 100
                 val = self.fake.boolean(chance_of_getting_true=chance_of_getting_true)
-            _field.field_value = val
-            _field.update()
-            self.radio_buttons_values[_field.field_name] = np.insert(group, len(group), val)
+            # TODO: fix rather than ignore error
+            try:
+                _field.field_value = val
+                _field.update()
+                self.radio_buttons_values[_field.field_name] = np.insert(group, len(group), val)
 
-            # self.annotator.add(_field.field_name, _field.rect, val)
-            self.annotator.add(_field)
+                # self.annotator.add(_field.field_name, _field.rect, val)
+                self.annotator.add(_field)
+            except Exception:
+                pass
 
 
     #TODO Add function to handle dropdown list
