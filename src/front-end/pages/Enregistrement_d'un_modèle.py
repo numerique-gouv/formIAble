@@ -30,6 +30,7 @@ def train_model():
     return
 
 
+@st.cache_data
 def generate_data(n: int) -> List[Image]:
     """Generate n examples of Cerfa 13753_04.
 
@@ -61,9 +62,9 @@ def get_text_info(field) -> Tuple:
     """
     Get name and coordinates of text field in PDF.
     """
-    # Coordinates of rect: x0, y0, x1, y1. 
-    # They are treated as being coordinates of two diagonally 
-    # opposite points. The first two numbers are regarded as the 
+    # Coordinates of rect: x0, y0, x1, y1.
+    # They are treated as being coordinates of two diagonally
+    # opposite points. The first two numbers are regarded as the
     # top left corner and x1, y1 as the bottom right one.
     name = field.field_name.lower()
     rect = field.rect
@@ -107,7 +108,7 @@ def get_page_template(field) -> Dict:
 def update_chosen_types_from_selection(chosen_types: Dict, i: int):
     """
     Update the dictionary of field types for field i according
-    to what is specified by the user. 
+    to what is specified by the user.
 
     Args:
         chosen_types (Dict): Dictionary of field types.
@@ -135,6 +136,7 @@ def update_chosen_types_from_selection(chosen_types: Dict, i: int):
     return
 
 
+@st.cache_data
 def tilt_image(image: Image) -> Image:
     """
     Tilt image by a random amount (small angle) for
@@ -152,6 +154,7 @@ def tilt_image(image: Image) -> Image:
     return image.rotate(angle, Image.NEAREST, expand=1, fillcolor="white")
 
 
+@st.cache_data
 def blur_image(image: Image) -> Image:
     """
     Blur image for demo purposes.
@@ -163,6 +166,10 @@ def blur_image(image: Image) -> Image:
         Image: Blurred image.
     """
     return image.filter(ImageFilter.GaussianBlur(radius=2))
+
+
+def click_generate_button():
+    st.session_state.generate_clicked = True
 
 
 # Streamlit App
@@ -287,8 +294,13 @@ if uploaded_pdf is not None:
             with col3:
                 update_chosen_types_from_selection(chosen_types, i)
 
-
-    if st.button("Générer des données d'entraînement"):
+    if 'generate_clicked' not in st.session_state:
+        st.session_state.generate_clicked = False
+    st.button(
+        "Générer des données d'entraînement",
+        on_click=click_generate_button
+    )
+    if st.session_state.generate_clicked:
         # Generate data
         # Here we generate with the already existing Writer class and
         # config .json but need to dynamically create them / simplify
@@ -309,6 +321,5 @@ if uploaded_pdf is not None:
         with blurred_col:
             st.image(blurred_image)
 
-
-if st.button("Ré-entraînement"):
-    train_model()
+    if st.button("Ré-entraînement"):
+        train_model()
