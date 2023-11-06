@@ -116,18 +116,21 @@ def update_chosen_types_from_selection(chosen_types: Dict, i: int):
     chosen_types[i]["type"] = st.selectbox(
         f"Type du champ {i}",
         field_types,
-        key=i
+        key=i,
+        index=default_indices[i]["index"]
     )
     placeholder = st.empty()
     with placeholder.container():
         st.text("")
     if chosen_types[i]["type"] == "Nombre dans un intervalle":
+        min_value = default_indices[i]["kwargs"].get("min_value", None)
+        max_value = default_indices[i]["kwargs"].get("max_value", None)
         with placeholder.container():
             container_col1, container_col2 = st.columns(2)
             with container_col1:
-                min_value = st.text_input("Valeur minimum", value="1900", key=f"{i}_1")
+                min_value = st.text_input("Valeur minimum", value=min_value, key=f"{i}_1")
             with container_col2:
-                max_value = st.text_input("Valeur maximum", value="2023", key=f"{i}_2")
+                max_value = st.text_input("Valeur maximum", value=max_value, key=f"{i}_2")
         chosen_types[i]["kwargs"]["interval"] = (int(min_value), int(max_value))
     return
 
@@ -237,14 +240,38 @@ if uploaded_pdf is not None:
         "Ville",
         "Code postal",
         "Paragraphe (texte)",
-        "Numéro de rue",
+        "Numéro de voie",
+        "Extension d'adresse",
+        "Type de voie",
         "Nom de rue",
         "Plaque d'immatriculation",
         "Marque de voiture",
         "Numéro SIRET"
     )
+    default_indices = {
+        0: {"index": 0, "kwargs": {}},
+        1: {"index": 12, "kwargs": {}},
+        2: {"index": 3, "kwargs": {}},
+        3: {"index": 6, "kwargs": {}},
+        4: {"index": 7, "kwargs": {}},
+        5: {"index": 8, "kwargs": {}},
+        6: {"index": 9, "kwargs": {}},
+        7: {"index": 4, "kwargs": {}},
+        8: {"index": 3, "kwargs": {}},
+        9: {"index": 1, "kwargs": {"min_value": "1", "max_value": "31"}},
+        10: {"index": 1, "kwargs": {"min_value": "1", "max_value": "12"}},
+        11: {"index": 1, "kwargs": {"min_value": "2000", "max_value": "2023"}},
+        12: {"index": 10, "kwargs": {}},
+        13: {"index": 11, "kwargs": {}},
+        14: {"index": 11, "kwargs": {}},
+        15: {"index": 2, "kwargs": {}},
+        16: {"index": 3, "kwargs": {}},
+        17: {"index": 5, "kwargs": {}},
+        18: {"index": 3, "kwargs": {}},
+        19: {"index": 2, "kwargs": {}},
+    }
     chosen_types = {
-        i: {"type": None, "kwargs": {}} 
+        i: {"type": None, "kwargs": {}}
         for i in range(len(page_template["text"]))
     }
     col1, col2, col3 = st.columns(3)
@@ -259,7 +286,7 @@ if uploaded_pdf is not None:
         else:
             with col3:
                 update_chosen_types_from_selection(chosen_types, i)
-       
+
 
     if st.button("Générer des données d'entraînement"):
         # Generate data
