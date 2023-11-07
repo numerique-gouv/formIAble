@@ -6,7 +6,7 @@ WORKDIR /app
 # Clone repository
 RUN git clone https://github.com/etalab-ia/formIAble.git .
 
-RUN pip3 install -r requirements.txt
+RUN sudo pip3 install -r requirements.txt
 
 EXPOSE 8501
 
