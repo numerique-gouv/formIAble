@@ -16,3 +16,5 @@ pymupdf
 python-Levenshtein
 opencv-python
 jsonlines
+paddlepaddle
+paddleocr
