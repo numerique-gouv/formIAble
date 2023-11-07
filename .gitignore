@@ -136,7 +136,10 @@ dmypy.json
 
 /data/models
 /data/signatures
-/data/tmp
+# ignore tous les fichiers de data/tmp
+/data/tmp/*
+# sauf le .keep permettant de conserver le dossier vide
+!/data/tmp/.keep
 #/data/tmp/dump_matrix_transformation
 #/data/tmp/temp_cerfa_*.png
 /security/AWScredentials.info
