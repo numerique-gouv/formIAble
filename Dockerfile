@@ -1,12 +1,14 @@
 ARG BASE_IMAGE=inseefrlab/onyxia-python-pytorch
 FROM $BASE_IMAGE
 
+USER root
+
 WORKDIR /app
 
 # Clone repository
 RUN git clone https://github.com/etalab-ia/formIAble.git .
 
-RUN sudo pip3 install -r requirements.txt
+RUN pip3 install -r requirements.txt
 
 EXPOSE 8501
 
