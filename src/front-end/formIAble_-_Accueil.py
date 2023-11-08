@@ -26,7 +26,7 @@ def initialize_app():
     else:
         # Download model
         importModelsDataFromBucketThroughProfile(
-            pModelsLocalCacheRootDirectoryStr="./data/models",
+            pModelsLocalCacheRootDirectoryStr="./data/models/donut_trained",
             pModelsLocalDataRootDirectoryStr="./src/data/synthetic_forms",
             pModelsNamesStrs=[model_name],
             pBucketNameStr="projet-formiable",
