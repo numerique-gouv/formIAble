@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=inseefrlab/onyxia-python
+ARG BASE_IMAGE=inseefrlab/onyxia-python-minimal
 FROM $BASE_IMAGE
 
 USER root
@@ -24,12 +24,6 @@ RUN rm libssl1.1_1.1.1f-1ubuntu2.20_amd64.deb
 RUN git clone https://github.com/etalab-ia/formIAble.git .
 
 RUN pip3 install -r requirements.txt
-
-# installe la boîte à outils MMOCR
-RUN mim install mmengine
-RUN mim install mmcv
-RUN mim install mmdet
-RUN mim install mmocr
 
 EXPOSE 8501
 
