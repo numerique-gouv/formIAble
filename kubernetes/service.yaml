@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: formiable-app
+spec:
+  type: LoadBalancer
+  selector:
+    app: formiable-app
+  ports:
+    - name: streamlit-port
+      protocol: TCP
+      port: 80
+      targetPort: 8501

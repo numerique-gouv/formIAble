@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: formiable-app
+spec:
+  selector:
+    matchLabels:
+      app: formiable-app
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: formiable-app
+    spec:
+      containers:
+        - name: dashboard
+          image: tomseimandi/formiable:latest
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: my-s3-creds
+                  key: accessKey
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: my-s3-creds
+                  key: secretKey
+            - name: AWS_S3_ENDPOINT
+              value: "minio.lab.sspcloud.fr"
+            - name: AWS_DEFAULT_REGION
+              value: "us-east-1"
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1000m"
+            limits:
+              memory: "5Gi"
+              cpu: "10000m"
