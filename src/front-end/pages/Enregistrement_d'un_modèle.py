@@ -31,14 +31,14 @@ def train_model():
 
 
 @st.cache_data
-def generate_data(n: int) -> List[Image]:
+def generate_data(n: int) -> List[Image.Image]:
     """Generate n examples of Cerfa 13753_04.
 
     Args:
         n (int): Number of examples to generate
 
     Returns:
-        List[Image]: List of images.
+        List[Image.Image]: List of images.
     """
     # Only generates 13753_04, to adjust
     num_cerfa = "13753_04"
@@ -49,7 +49,7 @@ def generate_data(n: int) -> List[Image]:
         writer = Writer13753_04(num_cerfa=num_cerfa, annotator=annotator)
         writer.fill_form()
         pix = writer.doc.load_page(0).get_pixmap(dpi=350)
-        image: Image = Image.frombytes(
+        image: Image.Image = Image.frombytes(
             "RGB",
             (pix.width, pix.height),
             pix.samples
@@ -137,16 +137,16 @@ def update_chosen_types_from_selection(chosen_types: Dict, i: int):
 
 
 @st.cache_data
-def tilt_image(image: Image) -> Image:
+def tilt_image(image: Image.Image) -> Image.Image:
     """
     Tilt image by a random amount (small angle) for
     demo purposes.
 
     Args:
-        image (Image): Image.
+        image (Image.Image): Image.
 
     Returns:
-        Image: Tilted image.
+        Image.Image: Tilted image.
     """
     angle = random.uniform(-10.0, -5.0)
     if random.randint(0, 1) == 0:
@@ -155,15 +155,15 @@ def tilt_image(image: Image) -> Image:
 
 
 @st.cache_data
-def blur_image(image: Image) -> Image:
+def blur_image(image: Image.Image) -> Image.Image:
     """
     Blur image for demo purposes.
 
     Args:
-        image (Image): Image.
+        image (Image.Image): Image.
 
     Returns:
-        Image: Blurred image.
+        Image.Image: Blurred image.
     """
     return image.filter(ImageFilter.GaussianBlur(radius=2))
 
@@ -207,7 +207,7 @@ if uploaded_pdf is not None:
     doc = fitz.open(stream=uploaded_pdf.read(), filetype="pdf")
     page = doc.load_page(0)
     pix = page.get_pixmap(dpi=350)
-    image: Image = Image.frombytes(
+    image: Image.Image = Image.frombytes(
         "RGB",
         (pix.width, pix.height),
         pix.samples

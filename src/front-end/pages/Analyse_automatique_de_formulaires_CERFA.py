@@ -89,6 +89,7 @@ if uploadedFile is not None:
             ocrPipeline.get_form_image_text_elements_and_boxes(uploadedFileAsImageRelativePathStr, paddleOcrModel)
         # extrait le numéro CERFA du formulaire afin de trouver le fichier de configuration dudit formulaire, définissant
         # les champs, leurs positions, les éléments de texte de référence et la taille de l'image de référence associée
+        print(lInputDocumentTextElements)
         cerfaFormNumberStr: str = ocrExtractor.get_form_number_in_text_elements(
             input_document_path=uploadedFile.name,
             text_elements=lInputDocumentTextElements
