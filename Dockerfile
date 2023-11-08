@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=inseefrlab/onyxia-python-pytorch
+ARG BASE_IMAGE=inseefrlab/onyxia-python
 FROM $BASE_IMAGE
 
 USER root
