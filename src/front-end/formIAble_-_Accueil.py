@@ -1,6 +1,38 @@
+from pathlib import Path
+import sys
+import os
+
+cwd = Path().resolve()
+sys.path.append(str(cwd))
+
 from PIL import Image
 import numpy as np
 import streamlit as st
+from src.util.S3_storage import importModelsDataFromBucketThroughProfile
+
+
+@st.cache_resource
+def initialize_app():
+    # Check if model files have already been downloaded
+    model_name = "donut_trained"
+    local_model_dir = "data/models"
+    model_path = os.path.join(
+        Path(local_model_dir),
+        model_name
+    )
+    if os.path.exists(model_path):
+        print("Model already downloaded.")
+        pass
+    else:
+        # Download model
+        importModelsDataFromBucketThroughProfile(
+            pModelsLocalCacheRootDirectoryStr="./data/models",
+            pModelsLocalDataRootDirectoryStr="./src/data/synthetic_forms",
+            pModelsNamesStrs=[model_name],
+            pBucketNameStr="projet-formiable",
+            pProfileNameStr="projet-formiable"
+        )
+    return
 
 
 # style CSS appliqué à la page HTML générée
@@ -39,3 +71,4 @@ with st.columns([1, 18, 1])[1]:
     st.image(np.array(image))
 
 st.title("Application d'analyse automatique de formulaires CERFA")
+initialize_app()

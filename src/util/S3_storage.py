@@ -49,26 +49,28 @@ def getBucketFilesThroughProfile(pBucketNameStr: str = "projet-formiable", pProf
     lConfigurationParser = configparser.ConfigParser()
     # si le fichier des informations de connexion aux services AWS fait partie de la liste (renvoyée par read) des fichiers analysés avec succès
     # par l'analyseur syntaxique
-    if os.environ['AWS_SHARED_CREDENTIALS_FILE'] in lConfigurationParser.read(os.environ['AWS_SHARED_CREDENTIALS_FILE']):
-        # dictionnaire des informations de connexion définies pour le profil pProfileNameStr
-        lDatalabSSPcloudAWScredentialsDictionary = dict(lConfigurationParser.items(pProfileNameStr))
-#        for lDatalabSSPcloudAWScredentialsDictionaryKey, lDatalabSSPcloudAWScredentialsDictionaryValue in lDatalabSSPcloudAWScredentialsDictionary.items():
-#            # !!! l'instanciation du système de fichiers S3 via s3fs.S3FileSystem() ne reconnaît pas la variable d'environnement AWS_ACCESS_KEY_ID...
-#            lEnvironmentVariableNameStr = lDatalabSSPcloudAWScredentialsDictionaryKey.upper()
-#            os.environ[lEnvironmentVariableNameStr] = lDatalabSSPcloudAWScredentialsDictionaryValue
-#            print("OS variable", lEnvironmentVariableNameStr, "=", lDatalabSSPcloudAWScredentialsDictionaryValue)
-#            print("OS variable", lEnvironmentVariableNameStr, "=", os.environ[lEnvironmentVariableNameStr])
-        # dictionnaire des paramètres de connexion au point de connexion S3 du Datalab SSP cloud :
-        # celui-ci est obtenu par fusion du dictionnaire contenant l'URL du point de connexion S3 avec
-        # le dictionnaire des informations de connexion définies pour le profil pProfileNameStr
-        lDatalabSSPcloudS3FileSystemConnectionParameters = {"endpoint_url": f"https://{os.environ['AWS_S3_ENDPOINT']}"} | lDatalabSSPcloudAWScredentialsDictionary
-        # système de fichier du point de connexion S3
-        lDatalabSSPcloudS3FileSystem = s3fs.S3FileSystem(client_kwargs=lDatalabSSPcloudS3FileSystemConnectionParameters)
-#        lDatalabSSPcloudS3FileSystem.rm(f"s3://{pBucketNameStr}/data/models/fakeModel/", recursive=True)
-        # retourne la liste les fichiers du conteneur de données pBucketNameStr
-        return lDatalabSSPcloudS3FileSystem.find(f"s3://{pBucketNameStr}/")
+    if 'AWS_SHARED_CREDENTIALS_FILE' in os.environ:
+        if os.environ['AWS_SHARED_CREDENTIALS_FILE'] in lConfigurationParser.read(os.environ['AWS_SHARED_CREDENTIALS_FILE']):
+            # dictionnaire des informations de connexion définies pour le profil pProfileNameStr
+            lDatalabSSPcloudAWScredentialsDictionary = dict(lConfigurationParser.items(pProfileNameStr))
+    #        for lDatalabSSPcloudAWScredentialsDictionaryKey, lDatalabSSPcloudAWScredentialsDictionaryValue in lDatalabSSPcloudAWScredentialsDictionary.items():
+    #            # !!! l'instanciation du système de fichiers S3 via s3fs.S3FileSystem() ne reconnaît pas la variable d'environnement AWS_ACCESS_KEY_ID...
+    #            lEnvironmentVariableNameStr = lDatalabSSPcloudAWScredentialsDictionaryKey.upper()
+    #            os.environ[lEnvironmentVariableNameStr] = lDatalabSSPcloudAWScredentialsDictionaryValue
+    #            print("OS variable", lEnvironmentVariableNameStr, "=", lDatalabSSPcloudAWScredentialsDictionaryValue)
+    #            print("OS variable", lEnvironmentVariableNameStr, "=", os.environ[lEnvironmentVariableNameStr])
+            # dictionnaire des paramètres de connexion au point de connexion S3 du Datalab SSP cloud :
+            # celui-ci est obtenu par fusion du dictionnaire contenant l'URL du point de connexion S3 avec
+            # le dictionnaire des informations de connexion définies pour le profil pProfileNameStr
+            lDatalabSSPcloudS3FileSystemConnectionParameters = {"endpoint_url": f"https://{os.environ['AWS_S3_ENDPOINT']}"} | lDatalabSSPcloudAWScredentialsDictionary
     else:
-        return ["Erreur lors de l'analyse du fichier des informations de connexion aux services AWS"]
+        lDatalabSSPcloudS3FileSystemConnectionParameters = {"endpoint_url": f"https://{os.environ['AWS_S3_ENDPOINT']}"}
+
+    # système de fichier du point de connexion S3
+    lDatalabSSPcloudS3FileSystem = s3fs.S3FileSystem(client_kwargs=lDatalabSSPcloudS3FileSystemConnectionParameters)
+#        lDatalabSSPcloudS3FileSystem.rm(f"s3://{pBucketNameStr}/data/models/fakeModel/", recursive=True)
+    # retourne la liste les fichiers du conteneur de données pBucketNameStr
+    return lDatalabSSPcloudS3FileSystem.find(f"s3://{pBucketNameStr}/")
 
 
 def exportModelsDataToBucketThroughProfile(
@@ -99,61 +101,65 @@ def exportModelsDataToBucketThroughProfile(
     lConfigurationParser = configparser.ConfigParser()
     # si le fichier des informations de connexion aux services AWS fait partie de la liste (renvoyée par read) des fichiers analysés avec succès
     # par l'analyseur syntaxique
-    if os.environ['AWS_SHARED_CREDENTIALS_FILE'] in lConfigurationParser.read(os.environ['AWS_SHARED_CREDENTIALS_FILE']):
-        # dictionnaire des informations de connexion définies pour le profil pProfileNameStr
-        lDatalabSSPcloudAWScredentialsDictionary = dict(lConfigurationParser.items(pProfileNameStr))
-        # dictionnaire des paramètres de connexion au point de connexion S3 du Datalab SSP cloud :
-        # celui-ci est obtenu par fusion du dictionnaire contenant l'URL du point de connexion S3 avec
-        # le dictionnaire des informations de connexion définies pour le profil pProfileNameStr
-        lDatalabSSPcloudS3FileSystemConnectionParameters = {"endpoint_url": f"https://{os.environ['AWS_S3_ENDPOINT']}"} | lDatalabSSPcloudAWScredentialsDictionary
-        # système de fichier du point de connexion S3
-        lDatalabSSPcloudS3FileSystem = s3fs.S3FileSystem(client_kwargs=lDatalabSSPcloudS3FileSystemConnectionParameters)
+    if 'AWS_SHARED_CREDENTIALS_FILE' in os.environ:
+        if os.environ['AWS_SHARED_CREDENTIALS_FILE'] in lConfigurationParser.read(os.environ['AWS_SHARED_CREDENTIALS_FILE']):
+            # dictionnaire des informations de connexion définies pour le profil pProfileNameStr
+            lDatalabSSPcloudAWScredentialsDictionary = dict(lConfigurationParser.items(pProfileNameStr))
+            # dictionnaire des paramètres de connexion au point de connexion S3 du Datalab SSP cloud :
+            # celui-ci est obtenu par fusion du dictionnaire contenant l'URL du point de connexion S3 avec
+            # le dictionnaire des informations de connexion définies pour le profil pProfileNameStr
+            lDatalabSSPcloudS3FileSystemConnectionParameters = {"endpoint_url": f"https://{os.environ['AWS_S3_ENDPOINT']}"} | lDatalabSSPcloudAWScredentialsDictionary
+    else:
+        lDatalabSSPcloudS3FileSystemConnectionParameters = {"endpoint_url": f"https://{os.environ['AWS_S3_ENDPOINT']}"}
 
-        # crée le répertoire racine des modèles si non existant dans le conteneur de données pBucketNameStr du point de connexion S3
-        lDatalabSSPcloudS3ModelsRootDirectoryStr = f"s3://{pBucketNameStr}/data/models"
-        if not lDatalabSSPcloudS3FileSystem.exists(lDatalabSSPcloudS3ModelsRootDirectoryStr):
-            lDatalabSSPcloudS3FileSystem.mkdirs(lDatalabSSPcloudS3ModelsRootDirectoryStr)
+    # système de fichier du point de connexion S3
+    lDatalabSSPcloudS3FileSystem = s3fs.S3FileSystem(client_kwargs=lDatalabSSPcloudS3FileSystemConnectionParameters)
 
-        # copie les tokens, tokenizers et cache de chaque modèle dans le répertoire racine des modèles sur le conteneur de données pBucketNameStr
-        # du point de connexion S3
-        for lModelNameStr in pModelsNamesStrs:
-            # si le répertoire du modèle n'existe pas déjà dans le conteneur de données pBucketNameStr du point de connexion S3,
-            if not lDatalabSSPcloudS3FileSystem.exists(f"{lDatalabSSPcloudS3ModelsRootDirectoryStr}/{lModelNameStr}"):
-                print(f"Export des tokens, tokenizers et cache du modèle {lModelNameStr}")
-                # en stocke les tokens, tokenizers et cache sur le point de connexion S3
-                # durée de la copie = environ 38 secondes pour 2.4 Go
-                lDatalabSSPcloudS3FileSystem.put(
-                    f"{pModelsLocalCacheRootDirectoryStr}/{lModelNameStr}",
-                    f"{lDatalabSSPcloudS3ModelsRootDirectoryStr}/",
-                    recursive=True
-                )
+    # crée le répertoire racine des modèles si non existant dans le conteneur de données pBucketNameStr du point de connexion S3
+    lDatalabSSPcloudS3ModelsRootDirectoryStr = f"s3://{pBucketNameStr}/data/models"
+    if not lDatalabSSPcloudS3FileSystem.exists(lDatalabSSPcloudS3ModelsRootDirectoryStr):
+        lDatalabSSPcloudS3FileSystem.mkdirs(lDatalabSSPcloudS3ModelsRootDirectoryStr)
 
-        # si le répertoire racine des données / fichiers d'entraînement et de test des modèles n'existe pas déjà dans le conteneur de
-        # données pBucketNameStr du point de connexion S3,
-        lDatalabSSPcloudS3ModelsDataRootDirectoryStr = f"s3://{pBucketNameStr}/data/ls_data/divers"
-        if not lDatalabSSPcloudS3FileSystem.exists(lDatalabSSPcloudS3ModelsDataRootDirectoryStr):
-            # le crée
-            lDatalabSSPcloudS3FileSystem.mkdirs(lDatalabSSPcloudS3ModelsDataRootDirectoryStr)
+    # copie les tokens, tokenizers et cache de chaque modèle dans le répertoire racine des modèles sur le conteneur de données pBucketNameStr
+    # du point de connexion S3
+    for lModelNameStr in pModelsNamesStrs:
+        # si le répertoire du modèle n'existe pas déjà dans le conteneur de données pBucketNameStr du point de connexion S3,
+        if not lDatalabSSPcloudS3FileSystem.exists(f"{lDatalabSSPcloudS3ModelsRootDirectoryStr}/{lModelNameStr}"):
+            print(f"Export des tokens, tokenizers et cache du modèle {lModelNameStr}")
+            # en stocke les tokens, tokenizers et cache sur le point de connexion S3
+            # durée de la copie = environ 38 secondes pour 2.4 Go
+            lDatalabSSPcloudS3FileSystem.put(
+                f"{pModelsLocalCacheRootDirectoryStr}/{lModelNameStr}",
+                f"{lDatalabSSPcloudS3ModelsRootDirectoryStr}/",
+                recursive=True
+            )
 
-        # itère sur les entrées (répertoires et fichiers) du répertoire racine des données des modèles à copier
-        # durée de la copie = environ 40 secondes
-        with os.scandir(pModelsLocalDataRootDirectoryStr) as lModelsDataToBeCopiedRootDirectoryIterator:
-            print("Export des fichiers d'entraînement et de test des modèles")
-            # pour chaque entrée,
-            for lModelDataToBeCopiedItem in lModelsDataToBeCopiedRootDirectoryIterator:
-                # si ladite entrée n'existe pas déjà dans le répertoire racine du cache des modèles sur le conteneur de données pBucketNameStr du
-                # point de connexion S3
-                if not lDatalabSSPcloudS3FileSystem.exists(f"{lDatalabSSPcloudS3ModelsDataRootDirectoryStr}/{lModelDataToBeCopiedItem.name}"):
-                    # et si ladite entrée est un répertoire qui n'est pas un lien symbolique (c'est-à-dire un répertoire contenant effectivement
-                    # le cache d'un modèle)
-                    if lModelDataToBeCopiedItem.is_dir(follow_symlinks=False):
-                        # copie les données des modèles stockées dans ledit répertoire vers le répertoire racine des données des modèles
-                        # sur le conteneur de données pBucketNameStr du point de connexion S3
-                        lDatalabSSPcloudS3FileSystem.put(
-                            f"{lModelDataToBeCopiedItem.path}",
-                            f"{lDatalabSSPcloudS3ModelsDataRootDirectoryStr}/",
-                            recursive=True
-                        )
+    # si le répertoire racine des données / fichiers d'entraînement et de test des modèles n'existe pas déjà dans le conteneur de
+    # données pBucketNameStr du point de connexion S3,
+    lDatalabSSPcloudS3ModelsDataRootDirectoryStr = f"s3://{pBucketNameStr}/data/ls_data/divers"
+    if not lDatalabSSPcloudS3FileSystem.exists(lDatalabSSPcloudS3ModelsDataRootDirectoryStr):
+        # le crée
+        lDatalabSSPcloudS3FileSystem.mkdirs(lDatalabSSPcloudS3ModelsDataRootDirectoryStr)
+
+    # itère sur les entrées (répertoires et fichiers) du répertoire racine des données des modèles à copier
+    # durée de la copie = environ 40 secondes
+    with os.scandir(pModelsLocalDataRootDirectoryStr) as lModelsDataToBeCopiedRootDirectoryIterator:
+        print("Export des fichiers d'entraînement et de test des modèles")
+        # pour chaque entrée,
+        for lModelDataToBeCopiedItem in lModelsDataToBeCopiedRootDirectoryIterator:
+            # si ladite entrée n'existe pas déjà dans le répertoire racine du cache des modèles sur le conteneur de données pBucketNameStr du
+            # point de connexion S3
+            if not lDatalabSSPcloudS3FileSystem.exists(f"{lDatalabSSPcloudS3ModelsDataRootDirectoryStr}/{lModelDataToBeCopiedItem.name}"):
+                # et si ladite entrée est un répertoire qui n'est pas un lien symbolique (c'est-à-dire un répertoire contenant effectivement
+                # le cache d'un modèle)
+                if lModelDataToBeCopiedItem.is_dir(follow_symlinks=False):
+                    # copie les données des modèles stockées dans ledit répertoire vers le répertoire racine des données des modèles
+                    # sur le conteneur de données pBucketNameStr du point de connexion S3
+                    lDatalabSSPcloudS3FileSystem.put(
+                        f"{lModelDataToBeCopiedItem.path}",
+                        f"{lDatalabSSPcloudS3ModelsDataRootDirectoryStr}/",
+                        recursive=True
+                    )
 
 
 def importModelsDataFromBucketThroughProfile(
@@ -183,44 +189,48 @@ def importModelsDataFromBucketThroughProfile(
     lConfigurationParser = configparser.ConfigParser()
     # si le fichier des informations de connexion aux services AWS fait partie de la liste (renvoyée par read) des fichiers analysés avec succès
     # par l'analyseur syntaxique
-    if os.environ['AWS_SHARED_CREDENTIALS_FILE'] in lConfigurationParser.read(os.environ['AWS_SHARED_CREDENTIALS_FILE']):
-        # dictionnaire des informations de connexion définies pour le profil pProfileNameStr
-        lDatalabSSPcloudAWScredentialsDictionary = dict(lConfigurationParser.items(pProfileNameStr))
-        # dictionnaire des paramètres de connexion au point de connexion S3 du Datalab SSP cloud :
-        # celui-ci est obtenu par fusion du dictionnaire contenant l'URL du point de connexion S3 avec
-        # le dictionnaire des informations de connexion définies pour le profil pProfileNameStr
-        lDatalabSSPcloudS3FileSystemConnectionParameters = {"endpoint_url": f"https://{os.environ['AWS_S3_ENDPOINT']}"} | lDatalabSSPcloudAWScredentialsDictionary
-        # système de fichier du point de connexion S3
-        lDatalabSSPcloudS3FileSystem = s3fs.S3FileSystem(client_kwargs=lDatalabSSPcloudS3FileSystemConnectionParameters)
+    if 'AWS_SHARED_CREDENTIALS_FILE' in os.environ:
+        if os.environ['AWS_SHARED_CREDENTIALS_FILE'] in lConfigurationParser.read(os.environ['AWS_SHARED_CREDENTIALS_FILE']):
+            # dictionnaire des informations de connexion définies pour le profil pProfileNameStr
+            lDatalabSSPcloudAWScredentialsDictionary = dict(lConfigurationParser.items(pProfileNameStr))
+            # dictionnaire des paramètres de connexion au point de connexion S3 du Datalab SSP cloud :
+            # celui-ci est obtenu par fusion du dictionnaire contenant l'URL du point de connexion S3 avec
+            # le dictionnaire des informations de connexion définies pour le profil pProfileNameStr
+            lDatalabSSPcloudS3FileSystemConnectionParameters = {"endpoint_url": f"https://{os.environ['AWS_S3_ENDPOINT']}"} | lDatalabSSPcloudAWScredentialsDictionary
+    else:
+        lDatalabSSPcloudS3FileSystemConnectionParameters = {"endpoint_url": f"https://{os.environ['AWS_S3_ENDPOINT']}"}
 
-        # copie les fichiers générés et de cache de chaque modèle depuis le répertoire du modèle présent dans le conteneur de données pBucketNameStr
-        # du point de connexion S3
-        for lModelNameStr in pModelsNamesStrs:
-            # si le répertoire du modèle existe sur le conteneur de données pBucketNameStr du point de connexion S3,
-            lDatalabSSPcloudS3ModelDirectoryStr = f"s3://{pBucketNameStr}/data/models/{lModelNameStr}"
-            if lDatalabSSPcloudS3FileSystem.exists(lDatalabSSPcloudS3ModelDirectoryStr):
-                print(f"Import des tokens, tokenizers et cache du modèle {lModelNameStr}")
-                # en copie les tokens, tokenizers et cache dans le répertoire pModelsLocalCacheRootDirectoryStr
-                # durée de la copie = environ 43 secondes pour 2.4 Go
-                lDatalabSSPcloudS3FileSystem.get(
-                    lDatalabSSPcloudS3ModelDirectoryStr,
-                    f"{pModelsLocalCacheRootDirectoryStr}/",
-                    recursive=True
-                )
+    # système de fichier du point de connexion S3
+    lDatalabSSPcloudS3FileSystem = s3fs.S3FileSystem(client_kwargs=lDatalabSSPcloudS3FileSystemConnectionParameters)
 
-        # si le chemin racine des fichiers d'entraînement et de test des modèles existe sur le conteneur de données pBucketNameStr du point de
-        # connexion S3 (ledit chemin doit terminer par "/" sinon la copie via get rajoute le dernier répertoire mentionné dans le chemin),
-        lDatalabSSPcloudS3ModelsDataRootDirectoryStr = f"s3://{pBucketNameStr}/data/ls_data/divers/"
-        if lDatalabSSPcloudS3FileSystem.exists(lDatalabSSPcloudS3ModelsDataRootDirectoryStr):
-            print("Import des fichiers d'entraînement et de test des modèles")
-            # copie les fichiers d'entraînement et de test des modèles depuis leur répertoire racine présent sur le conteneur de données
-            # pBucketNameStr du point de connexion S3 vers le répertoire pModelsLocalDataRootDirectoryStr
-            # durée de la copie = environ 37 secondes
+    # copie les fichiers générés et de cache de chaque modèle depuis le répertoire du modèle présent dans le conteneur de données pBucketNameStr
+    # du point de connexion S3
+    for lModelNameStr in pModelsNamesStrs:
+        # si le répertoire du modèle existe sur le conteneur de données pBucketNameStr du point de connexion S3,
+        lDatalabSSPcloudS3ModelDirectoryStr = f"s3://{pBucketNameStr}/data/models/{lModelNameStr}"
+        if lDatalabSSPcloudS3FileSystem.exists(lDatalabSSPcloudS3ModelDirectoryStr):
+            print(f"Import des tokens, tokenizers et cache du modèle {lModelNameStr}")
+            # en copie les tokens, tokenizers et cache dans le répertoire pModelsLocalCacheRootDirectoryStr
+            # durée de la copie = environ 43 secondes pour 2.4 Go
             lDatalabSSPcloudS3FileSystem.get(
-                lDatalabSSPcloudS3ModelsDataRootDirectoryStr,
-                f"{pModelsLocalDataRootDirectoryStr}/",
+                lDatalabSSPcloudS3ModelDirectoryStr,
+                f"{pModelsLocalCacheRootDirectoryStr}/",
                 recursive=True
             )
+
+    # si le chemin racine des fichiers d'entraînement et de test des modèles existe sur le conteneur de données pBucketNameStr du point de
+    # connexion S3 (ledit chemin doit terminer par "/" sinon la copie via get rajoute le dernier répertoire mentionné dans le chemin),
+    lDatalabSSPcloudS3ModelsDataRootDirectoryStr = f"s3://{pBucketNameStr}/data/ls_data/divers/"
+    if lDatalabSSPcloudS3FileSystem.exists(lDatalabSSPcloudS3ModelsDataRootDirectoryStr):
+        print("Import des fichiers d'entraînement et de test des modèles")
+        # copie les fichiers d'entraînement et de test des modèles depuis leur répertoire racine présent sur le conteneur de données
+        # pBucketNameStr du point de connexion S3 vers le répertoire pModelsLocalDataRootDirectoryStr
+        # durée de la copie = environ 37 secondes
+        lDatalabSSPcloudS3FileSystem.get(
+            lDatalabSSPcloudS3ModelsDataRootDirectoryStr,
+            f"{pModelsLocalDataRootDirectoryStr}/",
+            recursive=True
+        )
 
 
 
@@ -246,21 +256,21 @@ if __name__ == "__main__":
     # session S3 utilisant les informations de connexion indiquées dans le profil personnel du fichier desdites informations de connexion aux services S3
     # !!! Attention !!! Une session est un objet non thread-safe : il convient donc de créer une session par thread dans le cadre d'une exécution
     # multi-thread
-    datalabSSPcloudAWSSession = boto3.Session(profile_name="personal")
+    # datalabSSPcloudAWSSession = boto3.Session(profile_name="personal")
     # ressource (non thread-safe) S3 haut niveau liée au point de connexion S3 du Datalab SSP cloud
     # !!! Attention !!! Une ressource est un objet non thread-safe : il convient donc de créer une ressource par thread dans le cadre d'une exécution
     # multi-thread
-    datalabSSPcloudAWSs3Resource = datalabSSPcloudAWSSession.resource(
-        service_name="s3",
-        endpoint_url=f"https://{os.environ['AWS_S3_ENDPOINT']}"
-    )
+    # datalabSSPcloudAWSs3Resource = datalabSSPcloudAWSSession.resource(
+    #     service_name="s3",
+    #     endpoint_url=f"https://{os.environ['AWS_S3_ENDPOINT']}"
+    # )
     # liste les 3 premiers objets contenus dans chaque conteneur de données S3 récupéré sur le point de connexion
-    for lS3BucketIdx, lS3Bucket in enumerate(datalabSSPcloudAWSs3Resource.buckets.all(), start=1):
-        #print(f"- Bucket S3 n° {lS3BucketIdx} : {lS3Bucket.name}")
-        print(f"- Conteneur de données S3 n° {lS3BucketIdx} : {lS3Bucket.name}")
-        for lS3BucketObjectIdx, lS3BucketObject in enumerate(lS3Bucket.objects.limit(3), start=1):
-            #print(f"  * Object n° {lS3BucketObjectIdx} : {lS3BucketObject.key}")
-            print(f"  * Objet n° {lS3BucketObjectIdx} : {lS3BucketObject.key}")
+    # for lS3BucketIdx, lS3Bucket in enumerate(datalabSSPcloudAWSs3Resource.buckets.all(), start=1):
+    #     #print(f"- Bucket S3 n° {lS3BucketIdx} : {lS3Bucket.name}")
+    #     print(f"- Conteneur de données S3 n° {lS3BucketIdx} : {lS3Bucket.name}")
+    #     for lS3BucketObjectIdx, lS3BucketObject in enumerate(lS3Bucket.objects.limit(3), start=1):
+    #         #print(f"  * Object n° {lS3BucketObjectIdx} : {lS3BucketObject.key}")
+    #         print(f"  * Objet n° {lS3BucketObjectIdx} : {lS3BucketObject.key}")
 
     print("\nListe des fichiers du conteneur de données \"projet-formIAble\"")
     print("-", "\n- ".join(getBucketFilesThroughProfile(pBucketNameStr="projet-formiable", pProfileNameStr="projet-formiable")), "\n")
