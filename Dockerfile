@@ -25,6 +25,12 @@ RUN git clone https://github.com/etalab-ia/formIAble.git .
 
 RUN pip3 install -r requirements.txt
 
+# installe la boîte à outils MMOCR
+RUN mim install mmengine
+RUN mim install mmcv
+RUN mim install mmdet
+RUN mim install mmocr
+
 EXPOSE 8501
 
 HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
