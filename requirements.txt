@@ -19,3 +19,9 @@ jsonlines
 paddlepaddle
 paddleocr
 streamlit
+# DonUT
+pytorch_lightning
+sconf
+timm
+transformers
+donut-python
