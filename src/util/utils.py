@@ -119,7 +119,7 @@ def get_and_save_image_and_path_from_document(
     input_document_path: str,
     output_image_format: str = "PNG",
     output_image_quality_in_dpi: int = 350
-) -> Tuple[Image, str]:
+) -> Tuple[Image.Image, str]:
     r"""Exporte le document (PDF ou image) appelé `input_document_path` en tant qu'image de format `output_image_format`,
     la sauvegarde dans un fichier, et retourne le contenu de l'image ainsi exportée et son chemin.
     S'il s'agit d'un document PDF de plusieurs pages, seule la première page est exportée.
